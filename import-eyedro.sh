@@ -5,7 +5,7 @@ EXPORT_DATA=export_data
 cd ${EXPORT_DATA}
 
 echo "Downloading from pg2..."
-scp pg2:sync/pg2-eyedro-pgdump-${DATE_VAR}.tgz pg2:sync/weather-db-${DATE_VAR}.tgz .
+scp pg2:sync/${EXPORT_DATA}/pg2-eyedro-pgdump-${DATE_VAR}.tgz pg2:sync/${EXPORT_DATA}/weather-db-${DATE_VAR}.tgz .
 tar xvf pg2-eyedro-pgdump-${DATE_VAR}.tgz
 
 echo "Importing eyedro (pgs2) database public schema..."
