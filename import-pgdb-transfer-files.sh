@@ -10,4 +10,4 @@ scp pg2:sync/${EXPORT_DATA}/pg2-pgdb-${DATE_VAR}.tgz .
 scp pg2:sync/${EXPORT_DATA}/pg2-pgdb-pgdump-${DATE_VAR}.tgz .
 
 echo "Uploading to pg4..."
-scp pg2-pgdb-${DATE_VAR}.tgz pg2-pgdb-pgdump-${DATE_VAR}.tgz pg4:sync
+scp pg2-pgdb-${DATE_VAR}.tgz pg2-pgdb-pgdump-${DATE_VAR}.tgz pg4:sync/${EXPORT_DATA}
