@@ -12,6 +12,7 @@ gg pgui
 rm -rf data
 tar xvf ~/sync/${EXPORT_DATA}/pg2-pgdb-${DATE_VAR}.tgz
 
+echo "Updating ${PGUSER_3}@${PGDATABASE_3}"
 cd ~/sync/${EXPORT_DATA}
 scp pg2:sync/${EXPORT_DATA}/pg2-pgdb-pgdump-${DATE_VAR}.tgz .
 tar xvf pg2-pgdb-pgdump-${DATE_VAR}.tgz
@@ -19,3 +20,7 @@ tar xvf pg2-pgdb-pgdump-${DATE_VAR}.tgz
 psql -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && psql -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -f public_schema_backup.sql
 
 cd ..
+echo "***********************************"
+echo "Updated JSON DB at $(ggdir pgui)/data/"
+echo "Updated postgres: ${PGUSER_3}@${PGDATABASE_3}"
+echo "***********************************"
