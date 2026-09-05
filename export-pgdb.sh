@@ -11,6 +11,6 @@ tar czvf ~/sync/${EXPORT_DATA}/pg2-pgdb-${DATE_VAR}.tgz data/*
 cd ~/sync/${EXPORT_DATA}
 
 pg_dump -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -n public > public_schema_backup.sql # pgs3 (pgdb)
-tar czvf pg2-pgdb-pgdump-${DATE_VAR}.tgz public_schema_backup.sql
+tar czvf pg2-pgdb-pgdump-${DATE_VAR}.tgz public_schema_backup.sql && rm -f public_schema_backup.sql
 
 cd ..

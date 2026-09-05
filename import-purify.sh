@@ -9,6 +9,6 @@ scp pg2:sync/${EXPORT_DATA}/pg2-purifi-pgdump-${DATE_VAR}.tgz .
 tar xvf pg2-purifi-pgdump-${DATE_VAR}.tgz
 
 echo "Importing purifi (pgs1) database public schema..."
-psql -h ${PGHOST} -p ${PGPORT} -U ${PGUSER} -d ${PGDATABASE} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && psql -h ${PGHOST} -p ${PGPORT} -U ${PGUSER} -d ${PGDATABASE} -f public_schema_backup.sql
+psql -h ${PGHOST} -p ${PGPORT} -U ${PGUSER} -d ${PGDATABASE} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && psql -h ${PGHOST} -p ${PGPORT} -U ${PGUSER} -d ${PGDATABASE} -f public_schema_backup.sql && rm -f public_schema_backup.sql
 
 cd ..

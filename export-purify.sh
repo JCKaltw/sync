@@ -5,6 +5,6 @@ EXPORT_DATA=export_data
 
 cd ${EXPORT_DATA}
 pg_dump -h ${PGHOST} -p ${PGPORT} -U ${PGUSER} -d ${PGDATABASE} -n public > public_schema_backup.sql # pgs1 (purifi)
-tar czvf pg2-purifi-pgdump-${DATE_VAR}.tgz public_schema_backup.sql
+tar czvf pg2-purifi-pgdump-${DATE_VAR}.tgz public_schema_backup.sql && rm -f public_schema_backup.sql
 
 cd ..

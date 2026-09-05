@@ -17,7 +17,7 @@ cd ~/sync/${EXPORT_DATA}
 scp pg2:sync/${EXPORT_DATA}/pg2-pgdb-pgdump-${DATE_VAR}.tgz .
 tar xvf pg2-pgdb-pgdump-${DATE_VAR}.tgz
 
-psql -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && psql -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -f public_schema_backup.sql
+psql -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && psql -h ${PGHOST_3} -p ${PGPORT_3} -U ${PGUSER_3} -d ${PGDATABASE_3} -f public_schema_backup.sql && rm -f public_schema_backup.sql
 
 cd ..
 echo "***********************************"
