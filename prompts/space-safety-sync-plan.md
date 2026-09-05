@@ -1,9 +1,11 @@
 # Space Safety Sync Plan
 
 **Created**: 2026-08-20
+**Revised**: 2026-09-05 (per `prompts/space-safety-sync-update-plan-request.md`)
 **Author**: Claude Code (SYNC session)
-**Status**: Awaiting Review
+**Status**: Awaiting Review (revision)
 **Plan Request**: `prompts/space-safety-sync-plan-request.md`
+**Revision Request**: `prompts/space-safety-sync-update-plan-request.md`
 **Branch**: `space-safety-sync` (set by this plan's filename via `opb` / `gitcb`)
 
 ---
@@ -13,6 +15,8 @@
 - [Overview](#overview)
 - [Problem Statement](#problem-statement)
 - [Key Findings](#key-findings-🤖)
+- [Interim Work Reconciliation](#interim-work-reconciliation-🤖)
+- [Decision Points for Chris](#decision-points-for-chris-👤)
 - [Design Summary](#design-summary)
 - [ ] [Phase 1: Shared Helper Library sync-lib 🤖](#phase-1-shared-helper-library-sync-lib-🤖)
   - [ ] [Step 1.1: Create sync-lib with error and banner helpers 🤖](#step-11-create-sync-lib-with-error-and-banner-helpers-🤖)
@@ -33,16 +37,17 @@
   - [ ] [Step 3.5: import-all orchestration and manifest 🤖](#step-35-import-all-orchestration-and-manifest-🤖)
   - [ ] [Step 3.6: Harden the transfer-files scripts 🤖](#step-36-harden-the-transfer-files-scripts-🤖)
 - [ ] [Phase 4: Retention and Space Ratchet 🤖](#phase-4-retention-and-space-ratchet-🤖)
-  - [ ] [Step 4.1: Remove uncompressed intermediates after tar 🤖](#step-41-remove-uncompressed-intermediates-after-tar-🤖)
-  - [ ] [Step 4.2: Wire retention pruning into the all-wrappers 🤖](#step-42-wire-retention-pruning-into-the-all-wrappers-🤖)
+  - [ ] [Step 4.1: Verify-then-delete for uncompressed intermediates 🤖](#step-41-verify-then-delete-for-uncompressed-intermediates-🤖)
+  - [ ] [Step 4.2: Replace inline trim with prune_exports in the all-wrappers 🤖](#step-42-replace-inline-trim-with-prune_exports-in-the-all-wrappers-🤖)
   - [ ] [Step 4.3: Standalone prune script 🤖](#step-43-standalone-prune-script-🤖)
+  - [ ] [Step 4.4: sync-trim handoff patch for the bin repo 👤](#step-44-sync-trim-handoff-patch-for-the-bin-repo-👤)
 - [ ] [Phase 5: Failure-Path Testing 🤖](#phase-5-failure-path-testing-🤖)
   - [ ] [Step 5.1: Test sandbox and command shims 🤖](#step-51-test-sandbox-and-command-shims-🤖)
   - [ ] [Step 5.2: Export failure tests 🤖](#step-52-export-failure-tests-🤖)
   - [ ] [Step 5.3: Import failure tests 🤖](#step-53-import-failure-tests-🤖)
   - [ ] [Step 5.4: Happy-path regression 🤖](#step-54-happy-path-regression-🤖)
 - [ ] [Phase 6: Deployment and Live Verification 🤖👤](#phase-6-deployment-and-live-verification-🤖👤)
-  - [ ] [Step 6.1: Git add and commit on Mac 🤖](#step-61-git-add-and-commit-on-mac-🤖)
+  - [ ] [Step 6.1: Git add and commit on Mac including prompts docs 🤖](#step-61-git-add-and-commit-on-mac-including-prompts-docs-🤖)
   - [ ] [Step 6.2: Push from Mac and pull on pg2 👤](#step-62-push-from-mac-and-pull-on-pg2-👤)
   - [ ] [Step 6.3: Supervised live export on pg2 👤](#step-63-supervised-live-export-on-pg2-👤)
   - [ ] [Step 6.4: Supervised live import on Mac 👤🤖](#step-64-supervised-live-import-on-mac-👤🤖)
@@ -67,6 +72,15 @@ against disk-space exhaustion and silent failure. The core changes are:
 5. **Bounded retention** for `export_data/` and cleanup of uncompressed dump
    intermediates, so baseline disk usage stops growing.
 
+**2026-09-05 revision**: interim commit `e260d35` (raw-dump deletion,
+keep-newest-2 trim) has since landed on `main` and is live on both hosts.
+This revision reconciles the plan with that commit — see
+[Interim Work Reconciliation](#interim-work-reconciliation-🤖) — settles
+retention counts, adds Chris's new requirement on how the space-freeing step
+is surfaced (see [Decision Points for Chris](#decision-points-for-chris-👤)),
+disposes of the bin repo's `sync-trim`, refreshes size figures, and adds the
+`prompts/` documents to the commit scope.
+
 The user surface is unchanged: Chris still runs `./export-all.sh` on pg2 and
 `./import-all.sh` on the Mac with no new required arguments.
 
@@ -78,7 +92,7 @@ The user surface is unchanged: Chris still runs `./export-all.sh` on pg2 and
 
 On 2026-08-19, `export-all.sh` ran on pg2 with the 50GB root disk nearly full
 (`export_data/` held ~9.8GB of accumulated tarballs, and the eyedro export's
-~5.1GB uncompressed `public_schema_backup.sql` intermediate pushed it over).
+uncompressed `public_schema_backup.sql` intermediate pushed it over).
 The `tar` of `pgui/data` in `export-pgdb.sh` failed, so **no JSON tarball was
 created** — but with no error handling the run continued and looked
 successful. On the Mac, `import-pgdb.sh` failed to scp the nonexistent
@@ -88,7 +102,9 @@ Mac's `pgui/data` mirror.
 Space was the trigger; absent error handling turned a full disk into silent
 data loss. The scripts must warn about space **before** failure, stop loudly
 on any error, and never destroy existing data before its replacement is
-verified.
+verified. Interim commit `e260d35` addressed the space ratchet only; the
+error-handling, verification, and verify-then-swap requirements remain
+entirely unimplemented and the wrong-database hazard below remains live.
 
 [Back to TOC](#table-of-contents)
 
@@ -96,33 +112,114 @@ verified.
 
 ## Key Findings 🤖
 
-Gathered 2026-08-20 while preparing this plan:
+Gathered 2026-08-20; sizes and interim-work notes refreshed 2026-09-05:
 
-- **pg2 and the Mac share this git repo.** pg2's `~/sync` is a clone already
-  at the latest commit. Deploying pg2-side script changes is the normal
-  push (Chris, Mac) + pull (Chris, pg2) — no scp of scripts needed.
+- **pg2 and the Mac share this git repo.** pg2's `~/sync` is a clone kept
+  current by Chris's push (Mac) + pull (pg2) — no scp of scripts needed.
+  Commit `e260d35` is live on both hosts.
 - **The wrappers are symlinks, not copies.** Mac: `ip → import-pgdb.sh`,
   `ipr → import-purify.sh`, `ie → import-eyedro.sh`. pg2: `ep → export-pgdb.sh`,
   `ee → export-eyedro.sh`, `epr → export-purify.sh`. All are gitignored.
   There is no duplication to consolidate — hardening the real scripts
-  automatically covers the wrappers. The plan request's premise that `ip`
-  duplicates `import-pgdb.sh` is happily out of date.
-- **Current sizes** (for the space estimator): eyedro public dump ~5.1GB
-  uncompressed → 425MB tgz; weather ~15MB → 2.8MB; pgdb pgui/data ~48MB →
-  6MB; pgdb pgdump ~95KB. `export_data/` is 9.8GB / 82 files on pg2 (13GB
-  free on a 50GB disk) and 16GB / 423 files on the Mac.
-- **The failed run's debris is still on pg2**: `public_schema_backup.sql`
-  (5.1GB) and `weather_schema_backup.sql` sit uncompressed in `export_data/`,
-  and `pg2-pgdb-20260819.tgz` and the purify tarball for that date are
-  missing — confirming the incident narrative.
-- **Latent wrong-database hazard**: `export-eyedro.sh`, `export-pgdb.sh`, and
-  `export-purify.sh` all write a file literally named
+  automatically covers the wrappers.
+- **Current sizes, 2026-09-05** (for the space estimator): **purify is now
+  the largest artifact** — 9.7GB in Postgres, 5.2GB raw dump, ~360MB tgz.
+  Eyedro: ~1.5GB in Postgres, ~540MB tgz. Weather: ~15MB raw → 2.8MB tgz.
+  pgdb: pgui/data ~48MB → 6MB JSON tgz; pgdump tgz ~95KB. One full run
+  therefore produces roughly **0.9GB of tarballs** and needs ~5.5GB of
+  transient headroom for the purify raw dump. The 2026-08-19 debris and the
+  old tarball accumulation were cleared 2026-09-05 by `sync-trim`
+  (~4.3GB freed).
+- **`$(ggdir bin)/sync-trim` exists** (bin repo, Mac-only): ssh-trims pg2's
+  `export_data` to the newest tgz per family and deletes stray raw `.sql`
+  files. It duplicates retention logic that this plan moves into the sync
+  repo — disposition in Step 4.4.
+- **Latent wrong-database hazard (still live)**: `export-eyedro.sh`,
+  `export-pgdb.sh`, and `export-purify.sh` all write a file literally named
   `public_schema_backup.sql` in the same shared directory, and the import
   scripts extract to and read from that same shared name. If an scp or tar
   step fails but a *previous* script's `public_schema_backup.sql` is lying
   around, today's scripts would `DROP SCHEMA public CASCADE` and restore the
-  **wrong database's dump** (e.g. pgdb's dump into purify). Phase 3 removes
-  this hazard with per-script work directories.
+  **wrong database's dump** (e.g. pgdb's dump into purify). `e260d35`
+  narrowed the window (the file is now deleted after each successful
+  restore) but did not close it — a failed scp with a leftover from an
+  *earlier failed* run still restores the wrong dump. Phase 3 removes this
+  hazard with per-script work directories.
+
+[Back to TOC](#table-of-contents)
+
+---
+
+## Interim Work Reconciliation 🤖
+
+Commit `e260d35` (2026-09-05, "Make sync pipeline self-cleaning") landed on
+`main` as interim work and is live on both hosts. This plan treats it as the
+baseline. Every change it made is explicitly **kept** or **superseded** here
+— no double cleanup, no conflicting retention logic:
+
+| `e260d35` change | Disposition in this plan |
+|---|---|
+| `export-eyedro/pgdb/purify.sh`: `tar czvf ... && rm -f <dump>.sql` after each tar | **Superseded** by Step 2.x + 4.1: the delete moves behind `verify_tgz` (verify-then-delete). The interim form gates the delete on tar's exit code alone; a truncated-but-exit-0 tarball would still destroy the only copy of the dump. |
+| `import-*.sh`: `&& rm -f <dump>.sql` after each successful psql restore | **Superseded** by Step 3.3: dumps extract into per-member work directories that are removed whole on success and kept on failure. No shared-name `.sql` ever exists to clean up or to mis-restore. |
+| `export-all.sh` / `import-all.sh`: inline keep-newest-2 trim per tgz family **at the end** of the run | **Superseded** by Step 4.2: the inline blocks are removed and replaced by one `prune_exports` call **at the start** of the run, before the space gate — freed space then helps the run that needs it. Retention counts settled in Decision Point 2. |
+| The `pg2-pgdb-*.tgz` glob-overlap exclusion (`grep -v pgdump`) | **Kept** — the same family definitions (with that exclusion) move into `prune_exports` in `sync-lib.sh`, the single copy both hosts and the standalone prune script use. |
+| `df -h /` printed at end of run | **Kept** — folded into the `manifest_report` footer so the disk picture appears with the artifact table. |
+
+`$(ggdir bin)/sync-trim` (bin repo, not part of `e260d35` but same interim
+effort) also duplicates the retention logic; Step 4.4 turns it into a thin
+wrapper over the repo's own prune script via a handoff patch.
+
+[Back to TOC](#table-of-contents)
+
+---
+
+## Decision Points for Chris 👤
+
+Two choices are yours to make at plan review; the plan proceeds with the
+recommended option unless you say otherwise.
+
+### Decision 1: How the space-free step is surfaced
+
+You asked to be prompted about freeing space when starting a sync rather
+than discovering a failure later. Two candidate behaviors, both implemented
+entirely inside `export-all.sh` / `import-all.sh` (the SYNC-owned entry
+points; no bin-repo change needed for either):
+
+- [ ] **Option A — interactive prompt every run**: at the start,
+  `export-all.sh` / `import-all.sh` print current `export_data` usage and
+  what pruning would free, then ask `Prune old exports first? [y/N]` and
+  wait. **Caveat**: when Chris runs `sync-all`, `export-all.sh` executes
+  over ssh without a TTY (`pgs "... ./export-all.sh"`), where a prompt
+  cannot be answered — so Option A must detect "stdin is not a TTY" and
+  fall back to Option B behavior on that path. Net effect: the prompt only
+  ever appears when running `export-all.sh` by hand on pg2.
+- [x] **Option B — automatic prune plus loud space gate (recommended)**:
+  every run prunes automatically first (reporting every file deleted and
+  bytes freed), then the space gate compares required vs. available and
+  stops loudly **before anything is written** if space is still short.
+  Chris is interrupted only when something is actually wrong, and the
+  behavior is identical whether the script runs by hand or via `sync-all`
+  over ssh. This is the "warn before failure" guarantee without a
+  y/N toll-booth on every healthy run.
+
+**Recommendation: Option B** — it satisfies "tell me at the start, not after
+a failure" (the prune report and gate banner are the first output of every
+run), and Option A degrades to Option B on the `sync-all` path anyway.
+
+- [ ] 👤 Chris selects Option A or Option B (mark above).
+
+### Decision 2: Retention counts
+
+Interim behavior is keep-2 on both hosts; the original plan said keep-5
+(pg2) / keep-8 (Mac). **Recommended: keep-2 on pg2, keep-5 on the Mac**
+(overridable via `SYNC_KEEP`). Rationale: at current sizes a full run's
+tarballs total ~0.9GB, so pg2 — the space-constrained 50GB host whose
+exports are mirrored to the Mac on every import — idles at ~1.8GB with
+keep-2 (today's run plus one fallback), while the Mac, the archive of
+record with the roomier disk, holds ~4.5GB across five generations of
+recovery depth with keep-5.
+
+- [ ] 👤 Chris approves keep-2 (pg2) / keep-5 (Mac), or names other counts.
 
 [Back to TOC](#table-of-contents)
 
@@ -139,8 +236,9 @@ Gathered 2026-08-20 while preparing this plan:
   artifact's tarball bytes and uncompressed-intermediate bytes to
   `export_data/.sync-last-sizes`. The next run's requirement is last-run
   bytes × 1.5 margin; if no state file exists, conservative defaults apply
-  (eyedro 9 GiB, pgdb 1 GiB, purify 1 GiB). The gate also enforces an
-  absolute floor: the run must leave ≥ 2 GiB free afterward.
+  reflecting the 2026-09-05 measurements (purify 8 GiB — its 5.2GB raw dump
+  dominates — eyedro 3 GiB, pgdb 1 GiB). The gate also enforces an absolute
+  floor: the run must leave ≥ 2 GiB free afterward.
 - **The warning** (printed and exiting nonzero before anything is written):
 
   ```
@@ -155,13 +253,13 @@ Gathered 2026-08-20 while preparing this plan:
   ******************************************************************
   ```
 
-- **Retention rule**: keep the newest **5** dated tarballs per artifact
-  family on **pg2**, newest **8** per family on the **Mac**. Families:
-  `pg2-eyedro-pgdump-*`, `weather-db-*`, `pg2-pgdb-*` (JSON),
-  `pg2-pgdb-pgdump-*`, `pg2-purifi-pgdump-*`. Pruning always reports every
-  file it deletes and the bytes freed, and never deletes the newest file of
-  a family regardless of age. Host is detected via `uname` (Darwin = Mac
-  limits, Linux = pg2 limits).
+- **Retention rule** (pending Decision 2): keep the newest **2** dated
+  tarballs per artifact family on **pg2**, newest **5** per family on the
+  **Mac**. Families: `pg2-eyedro-pgdump-*`, `weather-db-*`, `pg2-pgdb-*`
+  (JSON, excluding pgdump), `pg2-pgdb-pgdump-*`, `pg2-purifi-pgdump-*`.
+  Pruning always reports every file it deletes and the bytes freed, and
+  never deletes the newest file of a family regardless of age. Host is
+  detected via `uname` (Darwin = Mac limits, Linux = pg2 limits).
 - **Failed import leaves on disk**: the existing `data/` (or its `data.prev`
   predecessor) untouched, any partial downloads in a clearly named
   `work-YYYYMMDD-<member>/` directory for inspection, and a FAILED manifest
@@ -191,7 +289,8 @@ Gathered 2026-08-20 while preparing this plan:
 
 - [ ] Implement `require_space <member>`: reads `.sync-last-sizes` for the
   member's last total bytes (tarballs + intermediates), multiplies by 1.5,
-  falls back to per-member defaults when no state exists, compares against
+  falls back to per-member defaults when no state exists (purify 8 GiB,
+  eyedro 3 GiB, pgdb 1 GiB — 2026-09-05 figures), compares against
   `df -Pk` available space on the `export_data` filesystem, and enforces the
   2 GiB post-run floor.
 - [ ] On failure, print the space-gate banner shown in the Design Summary and
@@ -207,7 +306,8 @@ Gathered 2026-08-20 while preparing this plan:
   sanity floor, `tar -tzf` succeeds, entry count > 0. `die` on any failure.
 - [ ] Implement `manifest_add <member> <artifact> <status> <size>` writing to
   a per-run manifest file, and `manifest_report` printing the final table
-  with OK / MISSING / FAILED per expected artifact so a missing artifact can
+  with OK / MISSING / FAILED per expected artifact (plus a `df -h` footer,
+  preserving `e260d35`'s end-of-run disk report) so a missing artifact can
   never hide again.
 
 [Back to TOC](#table-of-contents)
@@ -215,10 +315,11 @@ Gathered 2026-08-20 while preparing this plan:
 ### Step 1.4: Retention prune function 🤖
 
 - [ ] Implement `prune_exports`: for each artifact family, keep the newest N
-  (5 on pg2, 8 on Mac, overridable via `SYNC_KEEP`), delete the rest,
-  print every deletion and total bytes freed. Never delete a family's newest
-  file. Also delete stray uncompressed `*_schema_backup.sql` files older
-  than the current run.
+  (per Decision 2: 2 on pg2, 5 on Mac, overridable via `SYNC_KEEP`), delete
+  the rest, print every deletion and total bytes freed. Never delete a
+  family's newest file. Preserve `e260d35`'s pgdb glob-overlap exclusion in
+  the family definitions. Also delete stray uncompressed
+  `*_schema_backup.sql` files older than the current run.
 
 [Back to TOC](#table-of-contents)
 
@@ -235,14 +336,16 @@ Gathered 2026-08-20 while preparing this plan:
 ## Phase 2: Export Script Hardening 🤖
 
 All export scripts run on pg2 but are edited only on the Mac in this repo
-(delivered by git push/pull in Phase 6).
+(delivered by git push/pull in Phase 6). Baseline is the post-`e260d35`
+scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ### Step 2.1: Harden export-eyedro 🤖
 
 - [ ] `set -euo pipefail`, source sync-lib, `require_space eyedro` first.
 - [ ] Run pg_dump into a per-run work file, `run_step` each tar, `verify_tgz`
-  both tarballs, delete the uncompressed `.sql` intermediates on success,
-  `record_sizes eyedro`, `manifest_add` results.
+  both tarballs, **then** delete the uncompressed `.sql` intermediates
+  (replacing `e260d35`'s delete-on-tar-exit-code), `record_sizes eyedro`,
+  `manifest_add` results.
 
 [Back to TOC](#table-of-contents)
 
@@ -256,17 +359,21 @@ All export scripts run on pg2 but are edited only on the Mac in this repo
 
 ### Step 2.3: Harden export-purify 🤖
 
-- [ ] Same treatment as Step 2.1 for the single purify pgdump artifact.
+- [ ] Same treatment as Step 2.1 for the single purify pgdump artifact —
+  now the largest member (5.2GB raw dump), so its space gate matters most.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 2.4: export-all orchestration and manifest 🤖
 
-- [ ] `export-all.sh` runs `prune_exports`, then a combined `require_space`
-  for all three members, then each member in order, stopping at the first
-  failure; it always ends with `manifest_report` listing every expected
-  artifact for the date with status and size, plus a loud overall
-  SUCCEEDED / FAILED-AT-<member> banner.
+- [ ] `export-all.sh` runs `prune_exports` (replacing the `e260d35` inline
+  trim block — see Step 4.2), then a combined `require_space` for all three
+  members, then each member in order, stopping at the first failure; it
+  always ends with `manifest_report` listing every expected artifact for the
+  date with status and size, plus a loud overall SUCCEEDED /
+  FAILED-AT-<member> banner.
+- [ ] If Decision 1 = Option A: the interactive prune prompt runs here,
+  degrading to automatic behavior when stdin is not a TTY.
 - [ ] Invocation surface unchanged: `./export-all.sh`, no arguments.
 
 [Back to TOC](#table-of-contents)
@@ -306,7 +413,9 @@ All export scripts run on pg2 but are edited only on the Mac in this repo
   `work-YYYYMMDD-<member>/` directory and feeds psql from there, eliminating
   the shared `public_schema_backup.sql` filename collision (the
   wrong-database hazard in Key Findings). Work directories are removed on
-  success and kept on failure.
+  success and kept on failure. This **supersedes** `e260d35`'s
+  `&& rm -f <dump>.sql` after psql — there is no longer a shared-name file
+  to delete.
 - [ ] `DROP SCHEMA ... CASCADE` runs **only after** the member's own tarball
   verified and its dump file extracted nonzero in this run's work directory.
 
@@ -324,9 +433,11 @@ All export scripts run on pg2 but are edited only on the Mac in this repo
 
 - [ ] `import-all.sh` runs the full remote pre-flight for all members first
   (all-or-nothing before anything is touched), runs `prune_exports` on the
-  Mac's `export_data/`, then each member, stopping at first failure, ending
-  with `manifest_report` and a loud overall banner. Invocation unchanged:
-  `./import-all.sh`, no arguments.
+  Mac's `export_data/` (replacing the `e260d35` inline trim block), then
+  each member, stopping at first failure, ending with `manifest_report` and
+  a loud overall banner. If Decision 1 = Option A, the prompt runs here too
+  (import-all always has a TTY, so no fallback needed on this side).
+  Invocation unchanged: `./import-all.sh`, no arguments.
 
 [Back to TOC](#table-of-contents)
 
@@ -342,21 +453,29 @@ All export scripts run on pg2 but are edited only on the Mac in this repo
 
 ## Phase 4: Retention and Space Ratchet 🤖
 
-### Step 4.1: Remove uncompressed intermediates after tar 🤖
+This phase supersedes the interim `e260d35` mechanisms per the
+[Interim Work Reconciliation](#interim-work-reconciliation-🤖) table.
 
-- [ ] Every export member deletes its `*_schema_backup.sql` work files after
-  a verified tar; every import member removes its work directory after
-  success (already specified in 2.x / 3.3 — this step verifies no path
-  leaves intermediates behind on success, including the 5.1GB leftover
-  pattern from 2026-08-19).
+### Step 4.1: Verify-then-delete for uncompressed intermediates 🤖
+
+- [ ] Every export member deletes its `*_schema_backup.sql` work files only
+  after `verify_tgz` passes (replacing the `e260d35` delete-on-tar-exit
+  form); every import member removes its work directory after success
+  (already specified in 2.x / 3.3 — this step verifies no path leaves
+  intermediates behind on success, and that the delete never runs when
+  verification failed, so a bad tarball can't orphan the only dump copy).
 
 [Back to TOC](#table-of-contents)
 
-### Step 4.2: Wire retention pruning into the all-wrappers 🤖
+### Step 4.2: Replace inline trim with prune_exports in the all-wrappers 🤖
 
-- [ ] `export-all.sh` (pg2, keep 5 per family) and `import-all.sh` (Mac,
-  keep 8 per family) call `prune_exports` at start, before the space gate,
-  so retention automatically frees space ahead of the estimate check.
+- [ ] **Remove** the `e260d35` inline keep-2 trim blocks (and trailing
+  `df -h /`) from `export-all.sh` and `import-all.sh`; call `prune_exports`
+  **at the start** of each, before the space gate, so retention frees space
+  ahead of the estimate check instead of after the run. Counts per
+  Decision 2 (keep-2 pg2, keep-5 Mac). The `df` report moves into
+  `manifest_report`. No other retention logic remains anywhere in the repo
+  — one implementation, in `sync-lib.sh`.
 
 [Back to TOC](#table-of-contents)
 
@@ -365,6 +484,39 @@ All export scripts run on pg2 but are edited only on the Mac in this repo
 - [ ] Add `prune-export-data.sh` (repo root, works on either host) so the
   space-gate warning's remediation hint is a single command. Supports
   `--dry-run` to list what would be deleted.
+
+[Back to TOC](#table-of-contents)
+
+### Step 4.4: sync-trim handoff patch for the bin repo 👤
+
+**Recommendation: keep `sync-trim` as a thin wrapper, not retire it.** It
+remains useful as the Mac-side one-shot ("free space on pg2 right now,
+without running a sync"), but its duplicated retention logic must go —
+`prune-export-data.sh` in this repo (versioned, present on both hosts after
+pull) becomes the single implementation.
+
+- [ ] SYNC delivers the following replacement as **handoff patch text only**
+  (the bin repo is outside SYNC's scope; Chris applies and commits it in
+  `$(ggdir bin)` himself):
+
+  ```bash
+  #!/bin/bash
+  # sync-trim — trim pg2:~/sync/export_data using the sync repo's own
+  # prune script (single source of retention truth: sync/sync-lib.sh).
+  #
+  # Usage:
+  #   sync-trim          trim old exports on pg2
+  #   sync-trim -n       dry run: show what would be removed
+  set -uo pipefail
+  ARG=""
+  if [[ "${1:-}" == "-n" || "${1:-}" == "--dry-run" ]]; then
+    ARG="--dry-run"
+  fi
+  ssh pg2 "source ~/ggmap && gg sync && ./prune-export-data.sh $ARG && df -h / | tail -1"
+  ```
+
+- [ ] 👤 Chris applies the patch in the bin repo (after Phase 6's pull puts
+  `prune-export-data.sh` on pg2) and confirms `sync-trim -n` works.
 
 [Back to TOC](#table-of-contents)
 
@@ -392,6 +544,9 @@ No test touches live databases, live `pgui/data`, or the real
 - [ ] Tar failure: shim `tar` fails for the pgdb JSON step; the run aborts,
   the manifest shows `pg2-pgdb-<date>.tgz FAILED`, and the failing member is
   named in the final banner (the exact 2026-08-19 scenario, now loud).
+- [ ] Verify-then-delete: shim `tar` exits 0 but produces a corrupt tgz;
+  assert the run aborts at `verify_tgz` and the `.sql` intermediate was
+  **not** deleted (the gap in `e260d35`'s delete-on-exit-code, now closed).
 
 [Back to TOC](#table-of-contents)
 
@@ -412,8 +567,8 @@ No test touches live databases, live `pgui/data`, or the real
 
 - [ ] Full sandbox export + import with all shims succeeding: assert every
   artifact verifies, manifests show all OK, intermediates and work dirs are
-  cleaned, retention deletes the oldest dummies and keeps the newest N, and
-  `.sync-last-sizes` is written.
+  cleaned, retention deletes the oldest dummies and keeps the newest N
+  (2/5 per Decision 2), and `.sync-last-sizes` is written.
 
 [Back to TOC](#table-of-contents)
 
@@ -421,12 +576,15 @@ No test touches live databases, live `pgui/data`, or the real
 
 ## Phase 6: Deployment and Live Verification 🤖👤
 
-### Step 6.1: Git add and commit on Mac 🤖
+### Step 6.1: Git add and commit on Mac including prompts docs 🤖
 
 - [ ] Itemized `git add` (each file by name, no wildcards, no `-A`) of the
-  changed scripts, `sync-lib.sh`, `prune-export-data.sh`, `tests/`, and this
-  plan; commit to the `space-safety-sync` branch (then merge to main per the
-  gitm workflow when approved).
+  changed scripts, `sync-lib.sh`, `prune-export-data.sh`, `tests/` files,
+  **and the prompts documents** — `prompts/space-safety-sync-plan-request.md`,
+  `prompts/space-safety-sync-plan.md`,
+  `prompts/space-safety-sync-update-plan-request.md` — which are currently
+  untracked (revision Requirement 5). Commit to the `space-safety-sync`
+  branch (then merge to main per the gitm workflow when approved).
 
 [Back to TOC](#table-of-contents)
 
@@ -440,25 +598,26 @@ No test touches live databases, live `pgui/data`, or the real
 ### Step 6.3: Supervised live export on pg2 👤
 
 - [ ] Chris runs `./export-all.sh` on pg2. Expected: retention prune report
-  (this will clear the 2026-08-19 leftover 5.1GB `public_schema_backup.sql`
-  and old tarballs), space gate PASS, all five artifacts created and
-  verified, closing manifest all OK.
+  first, space gate PASS, all five artifacts created and verified, closing
+  manifest all OK with the `df` footer.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 6.4: Supervised live import on Mac 👤🤖
 
 - [ ] Chris runs `./import-all.sh` on the Mac. Expected: remote pre-flight
-  PASS, verify-then-swap restores `pgui/data` (finally replacing what the
-  incident destroyed), all schemas imported, manifest all OK, `data.prev`
-  present. Claude verifies `dml-ast.json` / `ddl-ast.json` afterward and
-  marks this plan complete.
+  PASS, verify-then-swap refreshes `pgui/data`, all schemas imported,
+  manifest all OK, `data.prev` present. Claude verifies `dml-ast.json` /
+  `ddl-ast.json` afterward and marks this plan complete. Chris then applies
+  the Step 4.4 sync-trim patch in the bin repo.
 
 [Back to TOC](#table-of-contents)
 
 ---
 
 ## Acceptance Criteria Mapping
+
+**Parent request (2026-08-20):**
 
 - **Both hosts, every script enumerated, wrapper handling** — Scope covers
   `sync-lib.sh` (new), `export-all/eyedro/pgdb/purify.sh`,
@@ -469,9 +628,26 @@ No test touches live databases, live `pgui/data`, or the real
 - **Space estimate + warning** — Step 1.2 and the Design Summary banner.
 - **Verification and verify-then-swap, failed-import residue** — Steps 1.3,
   3.2, 3.3; residue defined in the Design Summary.
-- **Retention rule per host** — Design Summary and Steps 1.4, 4.2, 4.3.
+- **Retention rule per host** — Decision 2, Steps 1.4, 4.2, 4.3.
 - **Failure-path tests without live data** — Phase 5 sandbox and shims.
 - **Invocation surface unchanged** — Steps 2.4 and 3.5.
+
+**Revision request (2026-09-05):**
+
+- **Every `e260d35` change kept or superseded, no double cleanup** — the
+  [Interim Work Reconciliation](#interim-work-reconciliation-🤖) table;
+  enforced in Steps 2.1, 3.3, 4.1, 4.2.
+- **One recommended retention count per host with rationale** — Decision 2:
+  keep-2 pg2 / keep-5 Mac.
+- **Space-free surfacing as explicit Chris decision, both options
+  specified** — Decision 1 (Option A prompt vs. Option B automatic,
+  recommendation B, TTY caveat noted); wiring in Steps 2.4 and 3.5; no
+  bin-repo change needed for either option.
+- **sync-trim disposition, bin changes as handoff patch text** — Step 4.4
+  (thin-wrapper recommendation with exact replacement script).
+- **Sizes refreshed to 2026-09-05** — Key Findings and Step 1.2 defaults
+  (purify now largest).
+- **Plan docs committed** — Step 6.1.
 - **Plan conventions** — TOC with checkboxes, numbered phases/steps,
   Typora-compatible hotlinks, Back to TOC links throughout.
 
