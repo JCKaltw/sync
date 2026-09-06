@@ -1,0 +1,39 @@
+#!/bin/bash
+# test shim: fake scp — pg2:<path> sources copy from the local fake-remote
+# path; pg2:/pg4: destinations only check the sources exist. Failure and
+# truncation injection via SHIM_SCP_FAIL_PATTERN / SHIM_SCP_TRUNCATE_PATTERN.
+echo "$*" >> "${SHIM_LOG_DIR:-/tmp}/scp.log"
+if [ -n "${SHIM_SCP_FAIL_PATTERN:-}" ] && echo "$*" | grep -qE "$SHIM_SCP_FAIL_PATTERN"; then
+    echo "scp: fake connection failure" >&2
+    exit 1
+fi
+args=("$@")
+n=${#args[@]}
+dest="${args[$((n - 1))]}"
+srcs=("${args[@]:0:$((n - 1))}")
+case "$dest" in
+    pg2:* | pg4:*)
+        for s in "${srcs[@]}"; do
+            if [ ! -f "$s" ]; then
+                echo "scp: $s: No such file or directory" >&2
+                exit 1
+            fi
+        done
+        ;;
+    *)
+        for s in "${srcs[@]}"; do
+            p="${s#pg2:}"
+            if [ ! -f "$p" ]; then
+                echo "scp: $p: No such file or directory" >&2
+                exit 1
+            fi
+            if [ -n "${SHIM_SCP_TRUNCATE_PATTERN:-}" ] && echo "$p" | grep -qE "$SHIM_SCP_TRUNCATE_PATTERN"; then
+                head -c 2000 "$p" > "$dest/$(basename "$p")" 2>/dev/null \
+                    || head -c 2000 "$p" > "$dest"
+            else
+                cp "$p" "$dest"
+            fi
+        done
+        ;;
+esac
+exit 0

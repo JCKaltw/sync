@@ -1,15 +1,24 @@
 #!/bin/bash
-./export-eyedro.sh
-./export-pgdb.sh
-./export-purify.sh
+set -euo pipefail
+source "$(cd "$(dirname "$0")" && pwd)/sync-lib.sh"
+cd "$SYNC_ROOT"
 
-# Retention: keep the newest 2 dated exports of each family, delete older.
-KEEP=2
-cd export_data
-for pat in 'pg2-eyedro-pgdump-*.tgz' 'pg2-purifi-pgdump-*.tgz' 'pg2-pgdb-pgdump-*.tgz' 'weather-db-*.tgz'; do
-  ls -t $pat 2>/dev/null | tail -n +$((KEEP+1)) | xargs -r rm -v
-done
-# pg2-pgdb-*.tgz also matches the pgdump family; exclude it
-ls -t pg2-pgdb-*.tgz 2>/dev/null | grep -v pgdump | tail -n +$((KEEP+1)) | xargs -r rm -v
-cd ..
-df -h /
+export SYNC_MANIFEST
+manifest_init
+manifest_expect eyedro "pg2-eyedro-pgdump-${DATE_VAR}.tgz"
+manifest_expect eyedro "weather-db-${DATE_VAR}.tgz"
+manifest_expect pgdb   "pg2-pgdb-${DATE_VAR}.tgz"
+manifest_expect pgdb   "pg2-pgdb-pgdump-${DATE_VAR}.tgz"
+manifest_expect purify "pg2-purifi-pgdump-${DATE_VAR}.tgz"
+
+FAILED_MEMBER=""
+trap 'st=$?; manifest_report; overall_banner "$st" EXPORT-ALL' EXIT
+
+# retention first, so freed space counts toward the gate (Decision 1 = Option B)
+prune_exports
+require_space eyedro pgdb purify
+
+FAILED_MEMBER=eyedro; ./export-eyedro.sh
+FAILED_MEMBER=pgdb;   ./export-pgdb.sh
+FAILED_MEMBER=purify; ./export-purify.sh
+FAILED_MEMBER=""

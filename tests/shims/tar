@@ -1,0 +1,25 @@
+#!/bin/bash
+# test shim: transparent tar unless a failure/corruption pattern matches a
+# CREATE invocation; everything else delegates to the real tar
+REAL_TAR="${SHIM_REAL_TAR:-/usr/bin/tar}"
+case "$1" in
+    c* | -c*)
+        if [ -n "${SHIM_TAR_FAIL_PATTERN:-}" ] && echo "$*" | grep -qE "$SHIM_TAR_FAIL_PATTERN"; then
+            echo "tar: fake failure (disk full)" >&2
+            exit 1
+        fi
+        if [ -n "${SHIM_TAR_CORRUPT_PATTERN:-}" ] && echo "$*" | grep -qE "$SHIM_TAR_CORRUPT_PATTERN"; then
+            # exit 0 but write garbage: the truncated-but-successful case
+            args=("$@")
+            out=""
+            for ((i = 0; i < ${#args[@]}; i++)); do
+                case "${args[$i]}" in
+                    *czf* | *cf*) out="${args[$((i + 1))]}"; break ;;
+                esac
+            done
+            [ -n "$out" ] && head -c 2000 /dev/urandom > "$out"
+            exit 0
+        fi
+        ;;
+esac
+exec "$REAL_TAR" "$@"

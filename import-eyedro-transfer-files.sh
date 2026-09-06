@@ -1,13 +1,19 @@
 #!/bin/bash
+set -euo pipefail
+source "$(cd "$(dirname "$0")" && pwd)/sync-lib.sh"
 
-DATE_VAR="$(date +%Y%m%d)"
-EXPORT_DATA=export_data
-cd ${EXPORT_DATA}
+PUB_TGZ="pg2-eyedro-pgdump-${DATE_VAR}.tgz"
+WEA_TGZ="weather-db-${DATE_VAR}.tgz"
 
+remote_preflight "$PUB_TGZ" "$WEA_TGZ"
+
+cd "$EXPORT_DATA"
 echo "Downloading from pg2..."
-scp pg2:sync/${EXPORT_DATA}/pg2-eyedro-pgdump-${DATE_VAR}.tgz pg2:sync/${EXPORT_DATA}/weather-db-${DATE_VAR}.tgz .
+run_step "scp eyedro tarballs from pg2" \
+    scp "pg2:${REMOTE_EXPORT_DATA}/$PUB_TGZ" "pg2:${REMOTE_EXPORT_DATA}/$WEA_TGZ" .
+verify_tgz "$EXPORT_DATA/$PUB_TGZ"
+verify_tgz "$EXPORT_DATA/$WEA_TGZ"
 
 echo "Uploading to pg4..."
-scp pg2-eyedro-pgdump-${DATE_VAR}.tgz weather-db-${DATE_VAR}.tgz pg4:sync/${EXPORT_DATA}
-
-cd ..
+run_step "scp eyedro tarballs to pg4" \
+    scp "$PUB_TGZ" "$WEA_TGZ" "pg4:${REMOTE_EXPORT_DATA}"
