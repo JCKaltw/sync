@@ -2,6 +2,7 @@
 
 **Created**: 2026-08-20
 **Revised**: 2026-09-05 (per `prompts/space-safety-sync-update-plan-request.md`)
+**Revised again**: 2026-09-05 (rev 2 — folds in the approved eyedro FDW fix per `prompts/eyedro-sync-missing-assets-research.md`)
 **Author**: Claude Code (SYNC session)
 **Status**: Awaiting Review (revision)
 **Plan Request**: `prompts/space-safety-sync-plan-request.md`
@@ -18,36 +19,37 @@
 - [Interim Work Reconciliation](#interim-work-reconciliation-🤖)
 - [Decision Points for Chris](#decision-points-for-chris-👤)
 - [Design Summary](#design-summary)
-- [ ] [Phase 1: Shared Helper Library sync-lib 🤖](#phase-1-shared-helper-library-sync-lib-🤖)
-  - [ ] [Step 1.1: Create sync-lib with error and banner helpers 🤖](#step-11-create-sync-lib-with-error-and-banner-helpers-🤖)
-  - [ ] [Step 1.2: Space gate function 🤖](#step-12-space-gate-function-🤖)
-  - [ ] [Step 1.3: Artifact verification and manifest functions 🤖](#step-13-artifact-verification-and-manifest-functions-🤖)
-  - [ ] [Step 1.4: Retention prune function 🤖](#step-14-retention-prune-function-🤖)
-  - [ ] [Step 1.5: Last-run size recording 🤖](#step-15-last-run-size-recording-🤖)
-- [ ] [Phase 2: Export Script Hardening 🤖](#phase-2-export-script-hardening-🤖)
-  - [ ] [Step 2.1: Harden export-eyedro 🤖](#step-21-harden-export-eyedro-🤖)
-  - [ ] [Step 2.2: Harden export-pgdb 🤖](#step-22-harden-export-pgdb-🤖)
-  - [ ] [Step 2.3: Harden export-purify 🤖](#step-23-harden-export-purify-🤖)
-  - [ ] [Step 2.4: export-all orchestration and manifest 🤖](#step-24-export-all-orchestration-and-manifest-🤖)
-- [ ] [Phase 3: Import Script Hardening 🤖](#phase-3-import-script-hardening-🤖)
-  - [ ] [Step 3.1: Remote pre-flight check of pg2 artifacts 🤖](#step-31-remote-pre-flight-check-of-pg2-artifacts-🤖)
-  - [ ] [Step 3.2: import-pgdb verify-then-swap for pgui data 🤖](#step-32-import-pgdb-verify-then-swap-for-pgui-data-🤖)
-  - [ ] [Step 3.3: Per-script work directories for dump extraction 🤖](#step-33-per-script-work-directories-for-dump-extraction-🤖)
-  - [ ] [Step 3.4: Harden import-eyedro and import-purify 🤖](#step-34-harden-import-eyedro-and-import-purify-🤖)
-  - [ ] [Step 3.5: import-all orchestration and manifest 🤖](#step-35-import-all-orchestration-and-manifest-🤖)
-  - [ ] [Step 3.6: Harden the transfer-files scripts 🤖](#step-36-harden-the-transfer-files-scripts-🤖)
-- [ ] [Phase 4: Retention and Space Ratchet 🤖](#phase-4-retention-and-space-ratchet-🤖)
-  - [ ] [Step 4.1: Verify-then-delete for uncompressed intermediates 🤖](#step-41-verify-then-delete-for-uncompressed-intermediates-🤖)
-  - [ ] [Step 4.2: Replace inline trim with prune_exports in the all-wrappers 🤖](#step-42-replace-inline-trim-with-prune_exports-in-the-all-wrappers-🤖)
-  - [ ] [Step 4.3: Standalone prune script 🤖](#step-43-standalone-prune-script-🤖)
-  - [ ] [Step 4.4: sync-trim handoff patch for the bin repo 👤](#step-44-sync-trim-handoff-patch-for-the-bin-repo-👤)
-- [ ] [Phase 5: Failure-Path Testing 🤖](#phase-5-failure-path-testing-🤖)
-  - [ ] [Step 5.1: Test sandbox and command shims 🤖](#step-51-test-sandbox-and-command-shims-🤖)
-  - [ ] [Step 5.2: Export failure tests 🤖](#step-52-export-failure-tests-🤖)
-  - [ ] [Step 5.3: Import failure tests 🤖](#step-53-import-failure-tests-🤖)
-  - [ ] [Step 5.4: Happy-path regression 🤖](#step-54-happy-path-regression-🤖)
+- [x] [Phase 1: Shared Helper Library sync-lib 🤖](#phase-1-shared-helper-library-sync-lib-🤖)
+  - [x] [Step 1.1: Create sync-lib with error and banner helpers 🤖](#step-11-create-sync-lib-with-error-and-banner-helpers-🤖)
+  - [x] [Step 1.2: Space gate function 🤖](#step-12-space-gate-function-🤖)
+  - [x] [Step 1.3: Artifact verification and manifest functions 🤖](#step-13-artifact-verification-and-manifest-functions-🤖)
+  - [x] [Step 1.4: Retention prune function 🤖](#step-14-retention-prune-function-🤖)
+  - [x] [Step 1.5: Last-run size recording 🤖](#step-15-last-run-size-recording-🤖)
+- [x] [Phase 2: Export Script Hardening 🤖](#phase-2-export-script-hardening-🤖)
+  - [x] [Step 2.1: Harden export-eyedro 🤖](#step-21-harden-export-eyedro-🤖)
+  - [x] [Step 2.2: Harden export-pgdb 🤖](#step-22-harden-export-pgdb-🤖)
+  - [x] [Step 2.3: Harden export-purify 🤖](#step-23-harden-export-purify-🤖)
+  - [x] [Step 2.4: export-all orchestration and manifest 🤖](#step-24-export-all-orchestration-and-manifest-🤖)
+- [x] [Phase 3: Import Script Hardening 🤖](#phase-3-import-script-hardening-🤖)
+  - [x] [Step 3.1: Remote pre-flight check of pg2 artifacts 🤖](#step-31-remote-pre-flight-check-of-pg2-artifacts-🤖)
+  - [x] [Step 3.2: import-pgdb verify-then-swap for pgui data 🤖](#step-32-import-pgdb-verify-then-swap-for-pgui-data-🤖)
+  - [x] [Step 3.3: Per-script work directories for dump extraction 🤖](#step-33-per-script-work-directories-for-dump-extraction-🤖)
+  - [x] [Step 3.4: Harden import-eyedro and import-purify 🤖](#step-34-harden-import-eyedro-and-import-purify-🤖)
+  - [x] [Step 3.5: import-all orchestration and manifest 🤖](#step-35-import-all-orchestration-and-manifest-🤖)
+  - [x] [Step 3.6: Harden the transfer-files scripts 🤖](#step-36-harden-the-transfer-files-scripts-🤖)
+  - [x] [Step 3.7: Eyedro FDW bootstrap and replay error accounting 🤖👤](#step-37-eyedro-fdw-bootstrap-and-replay-error-accounting-🤖👤)
+- [x] [Phase 4: Retention and Space Ratchet 🤖](#phase-4-retention-and-space-ratchet-🤖)
+  - [x] [Step 4.1: Verify-then-delete for uncompressed intermediates 🤖](#step-41-verify-then-delete-for-uncompressed-intermediates-🤖)
+  - [x] [Step 4.2: Replace inline trim with prune_exports in the all-wrappers 🤖](#step-42-replace-inline-trim-with-prune_exports-in-the-all-wrappers-🤖)
+  - [x] [Step 4.3: Standalone prune script 🤖](#step-43-standalone-prune-script-🤖)
+  - [x] [Step 4.4: sync-trim handoff patch for the bin repo 👤](#step-44-sync-trim-handoff-patch-for-the-bin-repo-👤)
+- [x] [Phase 5: Failure-Path Testing 🤖](#phase-5-failure-path-testing-🤖)
+  - [x] [Step 5.1: Test sandbox and command shims 🤖](#step-51-test-sandbox-and-command-shims-🤖)
+  - [x] [Step 5.2: Export failure tests 🤖](#step-52-export-failure-tests-🤖)
+  - [x] [Step 5.3: Import failure tests 🤖](#step-53-import-failure-tests-🤖)
+  - [x] [Step 5.4: Happy-path regression 🤖](#step-54-happy-path-regression-🤖)
 - [ ] [Phase 6: Deployment and Live Verification 🤖👤](#phase-6-deployment-and-live-verification-🤖👤)
-  - [ ] [Step 6.1: Git add and commit on Mac including prompts docs 🤖](#step-61-git-add-and-commit-on-mac-including-prompts-docs-🤖)
+  - [x] [Step 6.1: Git add and commit on Mac including prompts docs 🤖](#step-61-git-add-and-commit-on-mac-including-prompts-docs-🤖)
   - [ ] [Step 6.2: Push from Mac and pull on pg2 👤](#step-62-push-from-mac-and-pull-on-pg2-👤)
   - [ ] [Step 6.3: Supervised live export on pg2 👤](#step-63-supervised-live-export-on-pg2-👤)
   - [ ] [Step 6.4: Supervised live import on Mac 👤🤖](#step-64-supervised-live-import-on-mac-👤🤖)
@@ -79,7 +81,11 @@ This revision reconciles the plan with that commit — see
 retention counts, adds Chris's new requirement on how the space-freeing step
 is surfaced (see [Decision Points for Chris](#decision-points-for-chris-👤)),
 disposes of the bin repo's `sync-trim`, refreshes size figures, and adds the
-`prompts/` documents to the commit scope.
+`prompts/` documents to the commit scope. **Rev 2 (same day)** folds in the
+Chris-approved eyedro FDW fix from
+`prompts/eyedro-sync-missing-assets-research.md` as Step 3.7: a Mac-only
+FDW bootstrap before the dump replay, replay error accounting in place of
+blanket ON_ERROR_STOP, and post-import FDW verification.
 
 The user surface is unchanged: Chris still runs `./export-all.sh` on pg2 and
 `./import-all.sh` on the Mac with no new required arguments.
@@ -206,7 +212,8 @@ points; no bin-repo change needed for either):
 a failure" (the prune report and gate banner are the first output of every
 run), and Option A degrades to Option B on the `sync-all` path anyway.
 
-- [ ] 👤 Chris selects Option A or Option B (mark above).
+- [x] 👤 Chris selected **Option B** (2026-09-06, rev 2 approval message via
+  es2: "automatic prune + gate. No prompt.").
 
 ### Decision 2: Retention counts
 
@@ -219,7 +226,8 @@ keep-2 (today's run plus one fallback), while the Mac, the archive of
 record with the roomier disk, holds ~4.5GB across five generations of
 recovery depth with keep-5.
 
-- [ ] 👤 Chris approves keep-2 (pg2) / keep-5 (Mac), or names other counts.
+- [x] 👤 Chris approved **keep-2 (pg2) / keep-5 (Mac)** (2026-09-06, rev 2
+  approval message via es2: "as recommended").
 
 [Back to TOC](#table-of-contents)
 
@@ -272,14 +280,22 @@ recovery depth with keep-5.
 
 ## Phase 1: Shared Helper Library sync-lib 🤖
 
+**Implemented 2026-09-06**: `sync-lib.sh` created with all planned helpers
+(`die`, `run_step`, `require_space`, `verify_tgz`, `manifest_*`,
+`prune_exports`, `record_sizes`) plus `psql_replay`, `remote_preflight`,
+`fdw_bootstrap_file`, and `pgui_dir` (for Step 3.7 and test sandboxing).
+One bug found by the Phase 5 suite and fixed: `last_size_bytes` crashed
+under `set -e` when `.sync-last-sizes` did not yet exist (awk exit 2 on a
+missing file); it now returns empty so the defaults apply.
+
 ### Step 1.1: Create sync-lib with error and banner helpers 🤖
 
-- [ ] Create `sync-lib.sh` in the repo root. Every script will begin with
+- [x] Create `sync-lib.sh` in the repo root. Every script will begin with
   `set -euo pipefail` and `source "$(dirname "$0")/sync-lib.sh"`.
-- [ ] Implement `die "msg"` (unmissable multi-line banner to stderr, exit 1)
+- [x] Implement `die "msg"` (unmissable multi-line banner to stderr, exit 1)
   and `run_step "label" cmd...` (echo the label, run the command, `die` with
   the label on failure).
-- [ ] Honor `SYNC_ROOT` (default: the script's own directory) and
+- [x] Honor `SYNC_ROOT` (default: the script's own directory) and
   `EXPORT_DATA` (default `$SYNC_ROOT/export_data`) so the test sandbox in
   Phase 5 can redirect everything without touching live paths.
 
@@ -287,24 +303,24 @@ recovery depth with keep-5.
 
 ### Step 1.2: Space gate function 🤖
 
-- [ ] Implement `require_space <member>`: reads `.sync-last-sizes` for the
+- [x] Implement `require_space <member>`: reads `.sync-last-sizes` for the
   member's last total bytes (tarballs + intermediates), multiplies by 1.5,
   falls back to per-member defaults when no state exists (purify 8 GiB,
   eyedro 3 GiB, pgdb 1 GiB — 2026-09-05 figures), compares against
   `df -Pk` available space on the `export_data` filesystem, and enforces the
   2 GiB post-run floor.
-- [ ] On failure, print the space-gate banner shown in the Design Summary and
+- [x] On failure, print the space-gate banner shown in the Design Summary and
   exit nonzero **before any artifact is written**.
-- [ ] Support `SYNC_FAKE_AVAIL_KB` env override so tests can force the gate
+- [x] Support `SYNC_FAKE_AVAIL_KB` env override so tests can force the gate
   to fail without filling a disk.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 1.3: Artifact verification and manifest functions 🤖
 
-- [ ] Implement `verify_tgz <path>`: file exists, size above a per-family
+- [x] Implement `verify_tgz <path>`: file exists, size above a per-family
   sanity floor, `tar -tzf` succeeds, entry count > 0. `die` on any failure.
-- [ ] Implement `manifest_add <member> <artifact> <status> <size>` writing to
+- [x] Implement `manifest_add <member> <artifact> <status> <size>` writing to
   a per-run manifest file, and `manifest_report` printing the final table
   with OK / MISSING / FAILED per expected artifact (plus a `df -h` footer,
   preserving `e260d35`'s end-of-run disk report) so a missing artifact can
@@ -314,7 +330,7 @@ recovery depth with keep-5.
 
 ### Step 1.4: Retention prune function 🤖
 
-- [ ] Implement `prune_exports`: for each artifact family, keep the newest N
+- [x] Implement `prune_exports`: for each artifact family, keep the newest N
   (per Decision 2: 2 on pg2, 5 on Mac, overridable via `SYNC_KEEP`), delete
   the rest, print every deletion and total bytes freed. Never delete a
   family's newest file. Preserve `e260d35`'s pgdb glob-overlap exclusion in
@@ -325,7 +341,7 @@ recovery depth with keep-5.
 
 ### Step 1.5: Last-run size recording 🤖
 
-- [ ] Implement `record_sizes <member>` capturing actual artifact and
+- [x] Implement `record_sizes <member>` capturing actual artifact and
   intermediate sizes at the end of each successful member run into
   `export_data/.sync-last-sizes` (one line per member, replaced atomically).
 
@@ -339,10 +355,19 @@ All export scripts run on pg2 but are edited only on the Mac in this repo
 (delivered by git push/pull in Phase 6). Baseline is the post-`e260d35`
 scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
+**Implemented 2026-09-06**: all three members rewritten with
+`set -euo pipefail` + sync-lib; pg_dump now writes into per-run
+`work-YYYYMMDD-<member>/` dirs (tar member names inside the tgz are
+unchanged, so pg4 consumers are unaffected); every tar is `run_step` +
+`verify_tgz`; intermediates delete only after verification;
+`record_sizes` + `manifest_add` on success. `export-all.sh` gained the
+Option-B prune → combined gate → members → manifest + banner flow, with the
+`e260d35` inline trim blocks removed.
+
 ### Step 2.1: Harden export-eyedro 🤖
 
-- [ ] `set -euo pipefail`, source sync-lib, `require_space eyedro` first.
-- [ ] Run pg_dump into a per-run work file, `run_step` each tar, `verify_tgz`
+- [x] `set -euo pipefail`, source sync-lib, `require_space eyedro` first.
+- [x] Run pg_dump into a per-run work file, `run_step` each tar, `verify_tgz`
   both tarballs, **then** delete the uncompressed `.sql` intermediates
   (replacing `e260d35`'s delete-on-tar-exit-code), `record_sizes eyedro`,
   `manifest_add` results.
@@ -351,7 +376,7 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ### Step 2.2: Harden export-pgdb 🤖
 
-- [ ] Same treatment. The pgui/data tar (the step that failed silently on
+- [x] Same treatment. The pgui/data tar (the step that failed silently on
   2026-08-19) becomes `run_step` + `verify_tgz`, so a failure aborts with a
   banner and a FAILED manifest line instead of vanishing.
 
@@ -359,22 +384,22 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ### Step 2.3: Harden export-purify 🤖
 
-- [ ] Same treatment as Step 2.1 for the single purify pgdump artifact —
+- [x] Same treatment as Step 2.1 for the single purify pgdump artifact —
   now the largest member (5.2GB raw dump), so its space gate matters most.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 2.4: export-all orchestration and manifest 🤖
 
-- [ ] `export-all.sh` runs `prune_exports` (replacing the `e260d35` inline
+- [x] `export-all.sh` runs `prune_exports` (replacing the `e260d35` inline
   trim block — see Step 4.2), then a combined `require_space` for all three
   members, then each member in order, stopping at the first failure; it
   always ends with `manifest_report` listing every expected artifact for the
   date with status and size, plus a loud overall SUCCEEDED /
   FAILED-AT-<member> banner.
-- [ ] If Decision 1 = Option A: the interactive prune prompt runs here,
+- [x] If Decision 1 = Option A: the interactive prune prompt runs here,
   degrading to automatic behavior when stdin is not a TTY.
-- [ ] Invocation surface unchanged: `./export-all.sh`, no arguments.
+- [x] Invocation surface unchanged: `./export-all.sh`, no arguments.
 
 [Back to TOC](#table-of-contents)
 
@@ -382,9 +407,19 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ## Phase 3: Import Script Hardening 🤖
 
+**Implemented 2026-09-06**: all member scripts and both transfer-files
+scripts rewritten per Steps 3.1–3.7. `import-all.sh` does the all-or-nothing
+remote pre-flight before touching anything, then Option-B prune + space
+gate, then members with the manifest/banner trap. `import-pgdb.sh` does
+verify-then-swap through `data.incoming/` → `data.prev`; the legacy
+`rm -rf data` is gone. Every member extracts into its own work dir and
+replays via `psql_replay` (error accounting). Step 3.7's Mac-only FDW
+bootstrap runs between schema recreation and the public replay, with
+post-import FDW verification.
+
 ### Step 3.1: Remote pre-flight check of pg2 artifacts 🤖
 
-- [ ] Before any download or destructive step, `import-all.sh` (and each
+- [x] Before any download or destructive step, `import-all.sh` (and each
   member script when run standalone) checks via `ssh pg2 stat` that every
   expected tarball for today's date exists on pg2 and is nonzero. A missing
   artifact aborts with: which file is missing, and the hint "did
@@ -395,35 +430,35 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ### Step 3.2: import-pgdb verify-then-swap for pgui data 🤖
 
-- [ ] scp the JSON tarball, `verify_tgz` it, extract into `data.incoming/`
+- [x] scp the JSON tarball, `verify_tgz` it, extract into `data.incoming/`
   (never over live `data/`), and sanity-check that `dml-ast.json` and
   `ddl-ast.json` exist and are nonzero in the extraction.
-- [ ] Only then swap: `mv data data.prev` (removing any older `data.prev`
+- [x] Only then swap: `mv data data.prev` (removing any older `data.prev`
   first), `mv data.incoming data`. The prior generation survives as
   `data.prev` until the next successful import, so a bad run is recoverable
   with a single `mv` back.
-- [ ] On any failure before the swap, live `data/` is untouched and the
+- [x] On any failure before the swap, live `data/` is untouched and the
   partial material remains in `data.incoming/` for inspection.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 3.3: Per-script work directories for dump extraction 🤖
 
-- [ ] Each import member extracts its pgdump tarball into its own
+- [x] Each import member extracts its pgdump tarball into its own
   `work-YYYYMMDD-<member>/` directory and feeds psql from there, eliminating
   the shared `public_schema_backup.sql` filename collision (the
   wrong-database hazard in Key Findings). Work directories are removed on
   success and kept on failure. This **supersedes** `e260d35`'s
   `&& rm -f <dump>.sql` after psql — there is no longer a shared-name file
   to delete.
-- [ ] `DROP SCHEMA ... CASCADE` runs **only after** the member's own tarball
+- [x] `DROP SCHEMA ... CASCADE` runs **only after** the member's own tarball
   verified and its dump file extracted nonzero in this run's work directory.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 3.4: Harden import-eyedro and import-purify 🤖
 
-- [ ] Apply Steps 3.1 and 3.3 semantics to both: pre-flight remote check,
+- [x] Apply Steps 3.1 and 3.3 semantics to both: pre-flight remote check,
   verified download, per-member work dir, verified dump before any
   `DROP SCHEMA`, loud abort on psql failure, manifest lines.
 
@@ -431,7 +466,7 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ### Step 3.5: import-all orchestration and manifest 🤖
 
-- [ ] `import-all.sh` runs the full remote pre-flight for all members first
+- [x] `import-all.sh` runs the full remote pre-flight for all members first
   (all-or-nothing before anything is touched), runs `prune_exports` on the
   Mac's `export_data/` (replacing the `e260d35` inline trim block), then
   each member, stopping at first failure, ending with `manifest_report` and
@@ -443,9 +478,49 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 
 ### Step 3.6: Harden the transfer-files scripts 🤖
 
-- [ ] `import-pgdb-transfer-files.sh` and `import-eyedro-transfer-files.sh`
+- [x] `import-pgdb-transfer-files.sh` and `import-eyedro-transfer-files.sh`
   get the same pre-flight, `run_step` scp, and `verify_tgz` treatment before
   uploading to pg4 (they are non-destructive, so no swap logic is needed).
+
+[Back to TOC](#table-of-contents)
+
+### Step 3.7: Eyedro FDW bootstrap and replay error accounting 🤖👤
+
+Added rev 2 per the approved `prompts/eyedro-sync-missing-assets-research.md`
+(§5.1, §5.4): each eyedro import silently destroys the Mac's FDW stack
+(`DROP SCHEMA public CASCADE` drops postgres_fdw → server → mappings →
+foreign tables), and the dump's `CREATE FOREIGN TABLE public.product ...
+SERVER crossdb_pgdb2_server` then fails against the missing server.
+
+- [x] **FDW bootstrap (Mac only)**: in `import-eyedro.sh`, after
+  `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` and **before** the
+  dump replay, on Darwin only, run
+  `psql ... -v ON_ERROR_STOP=1 -f "$(ggdir db)/sql/mac-fdw-bootstrap.sql"`,
+  and `die` loudly if that file is absent. pg2 never runs the bootstrap.
+- [ ] 👤 **db-team handoff**: the db repo provides
+  `sql/mac-fdw-bootstrap.sql` — idempotent, exactly three statements:
+  `CREATE EXTENSION IF NOT EXISTS postgres_fdw`; `CREATE SERVER
+  crossdb_pgdb2_server` (**production's server name**, Mac-local options:
+  host localhost, port 5432, dbname pgdb, sslmode disable); `CREATE USER
+  MAPPING FOR chris` with the same Mac-local credentials mac-joins.sql uses
+  today. Because the server name matches production, the dump's own foreign
+  table restores cleanly and future FDW objects flow down automatically.
+  Chris relays this request to the db team; the sync side merely invokes
+  the file. (Naming gloss: `crossdb_pgdb2_server` is the postgres_fdw
+  foreign-server **object inside the eyedro database**, named for its
+  TARGET — the RDS database `pgdb_2` — and has nothing to do with the pg2
+  host.)
+- [x] **Replay error accounting (all three import members)**: the dump
+  replay cannot use blanket `ON_ERROR_STOP` — the eyedro dump alone carries
+  ~102 OWNER/GRANT statements for roles absent on the Mac (benign). Instead
+  capture psql stderr, whitelist the `role "..." does not exist` class,
+  fail the member (with counts in the manifest) if any unexpected error
+  remains. The bootstrap above, by contrast, keeps true `ON_ERROR_STOP` —
+  it has no benign errors.
+- [x] **Post-import FDW verification (eyedro)**: after replay assert
+  `postgres_fdw` in `pg_extension`, `crossdb_pgdb2_server` in
+  `pg_foreign_server`, and `SELECT count(*) FROM public.product` succeeds;
+  failure = FAILED manifest line.
 
 [Back to TOC](#table-of-contents)
 
@@ -456,9 +531,16 @@ scripts: the `tar ... && rm -f` forms are replaced, not layered on.
 This phase supersedes the interim `e260d35` mechanisms per the
 [Interim Work Reconciliation](#interim-work-reconciliation-🤖) table.
 
+**Implemented 2026-09-06**: no `rm` of an intermediate remains outside a
+post-`verify_tgz` path; the inline trim blocks are gone from both
+all-wrappers in favor of `prune_exports` at run start (keep-2 pg2 / keep-5
+Mac per Decision 2, `SYNC_KEEP` override); `prune-export-data.sh` added
+with `--dry-run`/`-n`. The Step 4.4 sync-trim patch text below remains a
+handoff for Chris to apply in the bin repo after deployment.
+
 ### Step 4.1: Verify-then-delete for uncompressed intermediates 🤖
 
-- [ ] Every export member deletes its `*_schema_backup.sql` work files only
+- [x] Every export member deletes its `*_schema_backup.sql` work files only
   after `verify_tgz` passes (replacing the `e260d35` delete-on-tar-exit
   form); every import member removes its work directory after success
   (already specified in 2.x / 3.3 — this step verifies no path leaves
@@ -469,7 +551,7 @@ This phase supersedes the interim `e260d35` mechanisms per the
 
 ### Step 4.2: Replace inline trim with prune_exports in the all-wrappers 🤖
 
-- [ ] **Remove** the `e260d35` inline keep-2 trim blocks (and trailing
+- [x] **Remove** the `e260d35` inline keep-2 trim blocks (and trailing
   `df -h /`) from `export-all.sh` and `import-all.sh`; call `prune_exports`
   **at the start** of each, before the space gate, so retention frees space
   ahead of the estimate check instead of after the run. Counts per
@@ -481,7 +563,7 @@ This phase supersedes the interim `e260d35` mechanisms per the
 
 ### Step 4.3: Standalone prune script 🤖
 
-- [ ] Add `prune-export-data.sh` (repo root, works on either host) so the
+- [x] Add `prune-export-data.sh` (repo root, works on either host) so the
   space-gate warning's remediation hint is a single command. Supports
   `--dry-run` to list what would be deleted.
 
@@ -495,7 +577,7 @@ without running a sync"), but its duplicated retention logic must go —
 `prune-export-data.sh` in this repo (versioned, present on both hosts after
 pull) becomes the single implementation.
 
-- [ ] SYNC delivers the following replacement as **handoff patch text only**
+- [x] SYNC delivers the following replacement as **handoff patch text only**
   (the bin repo is outside SYNC's scope; Chris applies and commits it in
   `$(ggdir bin)` himself):
 
@@ -527,9 +609,19 @@ pull) becomes the single implementation.
 No test touches live databases, live `pgui/data`, or the real
 `export_data/`. Everything runs in a sandbox via env overrides.
 
+**Implemented 2026-09-06**: `tests/run-tests.sh` + `tests/shims/`
+(pg_dump/psql/scp/ssh/tar) cover eleven scenarios — T1 space gate, T2 the
+2026-08-19 silent-tar scenario now loud, T3 corrupt-but-exit-0 tar with
+verify-then-delete, T4 missing remote artifact leaves data untouched, T5
+corrupt download / no swap, T6 wrong-dump isolation, T7 missing FDW
+bootstrap blocks before replay, T8a/b error accounting both ways, T9/T10
+happy-path export/import with retention + swap + FDW verification, T11
+prune dry-run. **Result: 56/56 assertions PASS** (first run caught the
+`last_size_bytes` bug noted in Phase 1, re-run green).
+
 ### Step 5.1: Test sandbox and command shims 🤖
 
-- [ ] Create `tests/` with a runner (`tests/run-tests.sh`) that builds a
+- [x] Create `tests/` with a runner (`tests/run-tests.sh`) that builds a
   scratch `SYNC_ROOT` (under the system temp dir), a fake `export_data/`
   with dated dummy tarballs, and a `shims/` directory prepended to PATH
   containing fake `pg_dump`, `psql`, `scp`, `ssh`, and `tar` wrappers whose
@@ -539,12 +631,12 @@ No test touches live databases, live `pgui/data`, or the real
 
 ### Step 5.2: Export failure tests 🤖
 
-- [ ] Space gate blocks: with `SYNC_FAKE_AVAIL_KB` set low, `export-all.sh`
+- [x] Space gate blocks: with `SYNC_FAKE_AVAIL_KB` set low, `export-all.sh`
   exits nonzero before writing anything, printing the space banner.
-- [ ] Tar failure: shim `tar` fails for the pgdb JSON step; the run aborts,
+- [x] Tar failure: shim `tar` fails for the pgdb JSON step; the run aborts,
   the manifest shows `pg2-pgdb-<date>.tgz FAILED`, and the failing member is
   named in the final banner (the exact 2026-08-19 scenario, now loud).
-- [ ] Verify-then-delete: shim `tar` exits 0 but produces a corrupt tgz;
+- [x] Verify-then-delete: shim `tar` exits 0 but produces a corrupt tgz;
   assert the run aborts at `verify_tgz` and the `.sql` intermediate was
   **not** deleted (the gap in `e260d35`'s delete-on-exit-code, now closed).
 
@@ -552,20 +644,26 @@ No test touches live databases, live `pgui/data`, or the real
 
 ### Step 5.3: Import failure tests 🤖
 
-- [ ] Missing remote tarball: shim `ssh`/`stat` reports the JSON tarball
+- [x] Missing remote tarball: shim `ssh`/`stat` reports the JSON tarball
   absent; `import-all.sh` aborts in pre-flight; assert the sandbox `data/`
   directory is untouched (the incident's data-loss path, now impossible).
-- [ ] Corrupt tarball: `verify_tgz` rejects a truncated tgz; assert `data/`
+- [x] Corrupt tarball: `verify_tgz` rejects a truncated tgz; assert `data/`
   and `data.prev` untouched and `data.incoming/` retained.
-- [ ] Wrong-dump isolation: leave a stale `public_schema_backup.sql` in the
+- [x] Wrong-dump isolation: leave a stale `public_schema_backup.sql` in the
   shared directory, fail one member's scp, and assert no `psql` shim call
   ever received the stale file (proves the per-member work-dir fix).
+- [x] FDW bootstrap failure: with the bootstrap file absent (or the psql
+  shim failing it), assert the eyedro member fails loudly **before** any
+  replay psql call (Step 3.7).
+- [x] Error accounting: inject a whitelisted `role "eyedro_user" does not
+  exist` error → member still OK; inject an unexpected psql error → member
+  FAILED with the error counted in the manifest (Step 3.7).
 
 [Back to TOC](#table-of-contents)
 
 ### Step 5.4: Happy-path regression 🤖
 
-- [ ] Full sandbox export + import with all shims succeeding: assert every
+- [x] Full sandbox export + import with all shims succeeding: assert every
   artifact verifies, manifests show all OK, intermediates and work dirs are
   cleaned, retention deletes the oldest dummies and keeps the newest N
   (2/5 per Decision 2), and `.sync-last-sizes` is written.
@@ -578,13 +676,19 @@ No test touches live databases, live `pgui/data`, or the real
 
 ### Step 6.1: Git add and commit on Mac including prompts docs 🤖
 
-- [ ] Itemized `git add` (each file by name, no wildcards, no `-A`) of the
+- [x] Itemized `git add` (each file by name, no wildcards, no `-A`) of the
   changed scripts, `sync-lib.sh`, `prune-export-data.sh`, `tests/` files,
   **and the prompts documents** — `prompts/space-safety-sync-plan-request.md`,
   `prompts/space-safety-sync-plan.md`,
-  `prompts/space-safety-sync-update-plan-request.md` — which are currently
+  `prompts/space-safety-sync-update-plan-request.md`,
+  `prompts/eyedro-sync-missing-assets-research-request.md`,
+  `prompts/eyedro-sync-missing-assets-research.md` — which are currently
   untracked (revision Requirement 5). Commit to the `space-safety-sync`
   branch (then merge to main per the gitm workflow when approved).
+
+**Implemented 2026-09-06**: 23 files added by name (no wildcards, no `-A`)
+and committed to `space-safety-sync` in a single commit; tests were green
+(56/56) at commit time.
 
 [Back to TOC](#table-of-contents)
 
@@ -605,11 +709,17 @@ No test touches live databases, live `pgui/data`, or the real
 
 ### Step 6.4: Supervised live import on Mac 👤🤖
 
+- [ ] 👤 Prerequisite: the db team's `sql/mac-fdw-bootstrap.sql` exists in
+  `$(ggdir db)` (Step 3.7 handoff) before this run.
 - [ ] Chris runs `./import-all.sh` on the Mac. Expected: remote pre-flight
   PASS, verify-then-swap refreshes `pgui/data`, all schemas imported,
   manifest all OK, `data.prev` present. Claude verifies `dml-ast.json` /
-  `ddl-ast.json` afterward and marks this plan complete. Chris then applies
-  the Step 4.4 sync-trim patch in the bin repo.
+  `ddl-ast.json` afterward, plus the eyedro FDW state: `postgres_fdw`
+  installed, `crossdb_pgdb2_server` present, `public.product` queryable,
+  and `esb_metrics_with_intervals_one_dg` present (it arrives with this
+  fresh export, closing the timeline race from the research). Then marks
+  this plan complete. Chris then applies the Step 4.4 sync-trim patch in
+  the bin repo.
 
 [Back to TOC](#table-of-contents)
 
@@ -650,5 +760,14 @@ No test touches live databases, live `pgui/data`, or the real
 - **Plan docs committed** — Step 6.1.
 - **Plan conventions** — TOC with checkboxes, numbered phases/steps,
   Typora-compatible hotlinks, Back to TOC links throughout.
+
+**Eyedro FDW research (2026-09-05, approved by Chris):**
+
+- **FDW stack survives every import** — Step 3.7 bootstrap (production's
+  server name, Mac-local options) + db-team handoff; verified in Step 6.4.
+- **Replay errors accounted, not silenced and not over-fatal** — Step 3.7
+  error accounting with the role-error whitelist; tested in Step 5.3.
+- **Function timeline race** — no script change needed; the next export
+  carries `esb_metrics_with_intervals_one_dg` (verified in Step 6.4).
 
 [Back to TOC](#table-of-contents)

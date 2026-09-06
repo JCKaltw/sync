@@ -1,0 +1,19 @@
+#!/bin/bash
+# test shim: fake pg_dump — writes a deterministic dump to the -f target
+echo "$*" >> "${SHIM_LOG_DIR:-/tmp}/pg_dump.log"
+if [ -n "${SHIM_PGDUMP_FAIL:-}" ]; then
+    echo "pg_dump: fake failure" >&2
+    exit 1
+fi
+out=""
+prev=""
+for a in "$@"; do
+    [ "$prev" = "-f" ] && out="$a"
+    prev="$a"
+done
+if [ -z "$out" ]; then
+    echo "pg_dump shim: no -f argument" >&2
+    exit 1
+fi
+seq -f "insert into filler values (%.0f, 'abcdefghijklmnopqrstuvwxyz');" 1 2000 > "$out"
+exit 0

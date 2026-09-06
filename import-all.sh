@@ -1,15 +1,33 @@
 #!/bin/bash
-./import-eyedro.sh
-./import-pgdb.sh
-./import-purify.sh
+set -euo pipefail
+source "$(cd "$(dirname "$0")" && pwd)/sync-lib.sh"
+cd "$SYNC_ROOT"
 
-# Retention: keep the newest 2 dated exports of each family, delete older.
-KEEP=2
-cd export_data
-for pat in 'pg2-eyedro-pgdump-*.tgz' 'pg2-purifi-pgdump-*.tgz' 'pg2-pgdb-pgdump-*.tgz' 'weather-db-*.tgz'; do
-  ls -t $pat 2>/dev/null | tail -n +$((KEEP+1)) | xargs -r rm -v
-done
-# pg2-pgdb-*.tgz also matches the pgdump family; exclude it
-ls -t pg2-pgdb-*.tgz 2>/dev/null | grep -v pgdump | tail -n +$((KEEP+1)) | xargs -r rm -v
-cd ..
-df -h /
+# all-or-nothing pre-flight: every expected artifact must exist on pg2
+# before any member touches anything local
+remote_preflight \
+    "pg2-eyedro-pgdump-${DATE_VAR}.tgz" \
+    "weather-db-${DATE_VAR}.tgz" \
+    "pg2-pgdb-${DATE_VAR}.tgz" \
+    "pg2-pgdb-pgdump-${DATE_VAR}.tgz" \
+    "pg2-purifi-pgdump-${DATE_VAR}.tgz"
+
+export SYNC_MANIFEST
+manifest_init
+manifest_expect eyedro "pg2-eyedro-pgdump-${DATE_VAR}.tgz"
+manifest_expect eyedro "weather-db-${DATE_VAR}.tgz"
+manifest_expect pgdb   "pg2-pgdb-${DATE_VAR}.tgz"
+manifest_expect pgdb   "pg2-pgdb-pgdump-${DATE_VAR}.tgz"
+manifest_expect purify "pg2-purifi-pgdump-${DATE_VAR}.tgz"
+
+FAILED_MEMBER=""
+trap 'st=$?; manifest_report; overall_banner "$st" IMPORT-ALL' EXIT
+
+# retention first, so freed space counts toward the gate (Decision 1 = Option B)
+prune_exports
+require_space eyedro pgdb purify
+
+FAILED_MEMBER=eyedro; ./import-eyedro.sh
+FAILED_MEMBER=pgdb;   ./import-pgdb.sh
+FAILED_MEMBER=purify; ./import-purify.sh
+FAILED_MEMBER=""

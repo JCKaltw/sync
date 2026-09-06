@@ -1,0 +1,6 @@
+#!/bin/bash
+# test shim: fake ssh — drops the host argument and runs the command locally
+# (SYNC_REMOTE_EXPORT_DATA points into the sandbox, so paths resolve)
+echo "$*" >> "${SHIM_LOG_DIR:-/tmp}/ssh.log"
+shift
+exec bash -c "$*"

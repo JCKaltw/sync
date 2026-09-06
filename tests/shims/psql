@@ -1,0 +1,33 @@
+#!/bin/bash
+# test shim: fake psql — logs every call; -tAc queries answer with a canned
+# value; -f replays can emit canned stderr (error-accounting tests)
+echo "$*" >> "${SHIM_LOG_DIR:-/tmp}/psql.log"
+if [ -n "${SHIM_PSQL_FAIL_PATTERN:-}" ] && echo "$*" | grep -qE "$SHIM_PSQL_FAIL_PATTERN"; then
+    echo "psql: fake fatal failure" >&2
+    exit 2
+fi
+dumpfile=""
+prev=""
+tac=0
+for a in "$@"; do
+    [ "$prev" = "-f" ] && dumpfile="$a"
+    [ "$a" = "-tAc" ] && tac=1
+    prev="$a"
+done
+if [ "$tac" = 1 ]; then
+    echo "${SHIM_PSQL_TAC_OUTPUT:-1}"
+    exit 0
+fi
+if [ -n "$dumpfile" ]; then
+    if [ ! -f "$dumpfile" ]; then
+        echo "psql: $dumpfile: No such file or directory" >&2
+        exit 1
+    fi
+    case "$*" in
+        *ON_ERROR_STOP*) : ;;   # bootstrap runs clean
+        *) if [ -n "${SHIM_PSQL_STDERR_FILE:-}" ]; then
+               cat "$SHIM_PSQL_STDERR_FILE" >&2
+           fi ;;
+    esac
+fi
+exit 0
