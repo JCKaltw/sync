@@ -243,10 +243,15 @@ recovery depth with keep-5.
 - **Space estimate**: after every successful run, `record_sizes` writes each
   artifact's tarball bytes and uncompressed-intermediate bytes to
   `export_data/.sync-last-sizes`. The next run's requirement is last-run
-  bytes × 1.5 margin; if no state file exists, conservative defaults apply
-  reflecting the 2026-09-05 measurements (purify 8 GiB — its 5.2GB raw dump
-  dominates — eyedro 3 GiB, pgdb 1 GiB). The gate also enforces an absolute
-  floor: the run must leave ≥ 2 GiB free afterward.
+  bytes × 1.5 margin; if no state file exists, defaults reflecting the
+  2026-09-06 measurements apply (eyedro 7 GiB — its 6.7GB raw dump
+  dominates — purify 6 GiB, pgdb 1 GiB). Because members run sequentially
+  and each deletes its raw dump once its tarball verifies, a combined gate
+  requires the **largest** member's bytes, not the sum (refined 2026-09-06
+  during the Step 6.3 pre-live check: the sum model demanded 20 GiB on a
+  pg2 with 13.2 GiB free for a run whose true peak is ~7.6 GiB). The gate
+  also enforces an absolute floor: the run must leave ≥ 2 GiB free
+  afterward.
 - **The warning** (printed and exiting nonzero before anything is written):
 
   ```
@@ -304,11 +309,16 @@ missing file); it now returns empty so the defaults apply.
 ### Step 1.2: Space gate function 🤖
 
 - [x] Implement `require_space <member>`: reads `.sync-last-sizes` for the
-  member's last total bytes (tarballs + intermediates), multiplies by 1.5,
-  falls back to per-member defaults when no state exists (purify 8 GiB,
-  eyedro 3 GiB, pgdb 1 GiB — 2026-09-05 figures), compares against
-  `df -Pk` available space on the `export_data` filesystem, and enforces the
-  2 GiB post-run floor.
+  member's last total bytes (tarballs + intermediates), takes the largest
+  member (sequential self-cleaning pipeline — see Design Summary),
+  multiplies by 1.5, falls back to per-member defaults when no state exists
+  (eyedro 7 GiB, purify 6 GiB, pgdb 1 GiB — 2026-09-06 figures), compares
+  against `df -Pk` available space on the `export_data` filesystem, and
+  enforces the 2 GiB post-run floor.
+  *(Refined 2026-09-06 pre-live: sum→max model and corrected eyedro
+  default; the eyedro raw dump is 6.7GB, not the ~1.5GB the revision
+  request reported. Also hardened import-eyedro to check the FDW bootstrap
+  file exists during pre-flight, before any schema drop.)*
 - [x] On failure, print the space-gate banner shown in the Design Summary and
   exit nonzero **before any artifact is written**.
 - [x] Support `SYNC_FAKE_AVAIL_KB` env override so tests can force the gate

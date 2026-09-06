@@ -53,11 +53,11 @@ run_step() {
 # ---------------------------------------------------------------- space gate
 
 member_default_bytes() {
-    # First-run estimates (2026-09-05 measurements: purify raw dump 5.2GB
-    # dominates; eyedro ~1.5GB DB; pgdb small).
+    # First-run estimates (2026-09-06 measurements: eyedro raw dump 6.7GB
+    # + 0.54GB tgz dominates; purify raw 5.2GB + 0.36GB tgz; pgdb small).
     case "$1" in
-        purify) echo $((8 * 1024 * 1024 * 1024)) ;;
-        eyedro) echo $((3 * 1024 * 1024 * 1024)) ;;
+        eyedro) echo $((7 * 1024 * 1024 * 1024)) ;;
+        purify) echo $((6 * 1024 * 1024 * 1024)) ;;
         pgdb)   echo $((1 * 1024 * 1024 * 1024)) ;;
         *)      echo $((1 * 1024 * 1024 * 1024)) ;;
     esac
@@ -70,8 +70,12 @@ last_size_bytes() {
 
 require_space() {
     # require_space <member>... — abort before anything is written if the
-    # estimated requirement (last run x1.5, or defaults) plus a 2 GiB
-    # post-run floor exceeds available space on the export_data filesystem.
+    # estimated requirement (x1.5, plus a 2 GiB post-run floor) exceeds
+    # available space on the export_data filesystem. Members run
+    # SEQUENTIALLY and each deletes its raw dump once its tarball verifies,
+    # so the peak need is the LARGEST member's last-run bytes (or default),
+    # not the sum — the x1.5 margin covers the ~1GB of tarballs that
+    # accumulate across the run.
     local need=0 basis="last run" m b
     for m in "$@"; do
         b="$(last_size_bytes "$m")"
@@ -79,7 +83,7 @@ require_space() {
             b="$(member_default_bytes "$m")"
             basis="defaults"
         fi
-        need=$((need + b))
+        if [ "$b" -gt "$need" ]; then need=$b; fi
     done
     local scaled=$((need * 3 / 2))
     local floor=$((2 * 1024 * 1024 * 1024))
@@ -94,7 +98,7 @@ require_space() {
         {
             echo "******************************************************************"
             echo "* SPACE GATE FAILED - nothing has been written"
-            echo "* Required : $(fmt_gib $((scaled + floor)))  ($(fmt_gib "$need") from $basis x 1.5 margin + 2 GiB floor)"
+            echo "* Required : $(fmt_gib $((scaled + floor)))  (largest member $(fmt_gib "$need") from $basis x 1.5 margin + 2 GiB floor)"
             echo "* Available: $(fmt_gib "$avail")  on $EXPORT_DATA"
             echo "* Shortfall: $(fmt_gib $((scaled + floor - avail)))"
             echo "* To free space:"

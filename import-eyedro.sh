@@ -8,6 +8,14 @@ WEA_TGZ="weather-db-${DATE_VAR}.tgz"
 # nothing local is touched until today's artifacts are confirmed on pg2
 remote_preflight "$PUB_TGZ" "$WEA_TGZ"
 
+# fail fast on the Mac: the FDW bootstrap must exist BEFORE any schema is
+# dropped, not discovered missing mid-import (plan Step 3.7)
+BOOTSTRAP=""
+if is_mac; then
+    BOOTSTRAP="$(fdw_bootstrap_file)"
+    [ -f "$BOOTSTRAP" ] || die "FDW bootstrap file missing: $BOOTSTRAP (db-team deliverable, see plan Step 3.7)"
+fi
+
 cd "$EXPORT_DATA"
 echo "Downloading from pg2..."
 run_step "scp eyedro tarballs" \
@@ -41,8 +49,6 @@ run_step "drop+recreate public schema" \
 # (crossdb_pgdb2_server is the postgres_fdw server object inside eyedro,
 # named for its TARGET database pgdb_2 — nothing to do with the pg2 host.)
 if is_mac; then
-    BOOTSTRAP="$(fdw_bootstrap_file)"
-    [ -f "$BOOTSTRAP" ] || die "FDW bootstrap file missing: $BOOTSTRAP (db-team deliverable, see plan Step 3.7)"
     run_step "FDW bootstrap ($BOOTSTRAP)" \
         "${PSQL2[@]}" -v ON_ERROR_STOP=1 -q -f "$BOOTSTRAP"
 fi
