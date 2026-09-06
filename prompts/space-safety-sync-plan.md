@@ -427,6 +427,13 @@ replays via `psql_replay` (error accounting). Step 3.7's Mac-only FDW
 bootstrap runs between schema recreation and the public replay, with
 post-import FDW verification.
 
+**Live-run finding 2026-09-06 (Step 6.4 first attempt)**: the error
+accounting flagged `schema "weather" already exists` — pg_dump 15 emits
+`CREATE SCHEMA` in every schema-scoped dump (public included), which
+collides with our intentional pre-create and was silently swallowed by the
+legacy scripts on every run. Whitelisted as a second benign class
+(role-grant / schema-exists) in `psql_replay`; T8a extended to lock it in.
+
 ### Step 3.1: Remote pre-flight check of pg2 artifacts 🤖
 
 - [x] Before any download or destructive step, `import-all.sh` (and each

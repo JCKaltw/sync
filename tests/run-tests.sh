@@ -148,13 +148,14 @@ echo "== T8a: benign role-grant replay errors are tolerated =="
 new_sandbox
 make_remote_artifacts
 cat > "$SB/benign.err" <<'EOF'
+psql:dump.sql:23: ERROR:  schema "public" already exists
 psql:dump.sql:120: ERROR:  role "eyedro_user" does not exist
 psql:dump.sql:121: ERROR:  role "postgres" does not exist
 EOF
 export SHIM_PSQL_STDERR_FILE="$SB/benign.err"
 out="$("$REPO/import-purify.sh" 2>&1)"; rc=$?
-assert "import-purify succeeds despite role errors" test "$rc" -eq 0
-assert_contains "errors were counted as benign" "$out" "2 benign role-grant, 0 unexpected"
+assert "import-purify succeeds despite role/schema errors" test "$rc" -eq 0
+assert_contains "errors were counted as benign" "$out" "3 benign (role-grant/schema-exists), 0 unexpected"
 
 echo "== T8b: unexpected replay error fails the member =="
 new_sandbox

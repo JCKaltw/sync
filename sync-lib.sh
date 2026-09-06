@@ -260,12 +260,16 @@ psql_replay() {
     if ! psql "$@" -f "$dump" > /dev/null 2> "$errfile"; then
         die "psql replay failed hard (connection/fatal): $label (stderr: $errfile)"
     fi
+    # benign by construction: role-grant errors (production roles absent on
+    # this host) and schema-already-exists (we pre-create the schema the
+    # dump also creates — pg_dump 15 emits CREATE SCHEMA even for public)
+    local benign_re='ERROR: +(role "[^"]*" does not exist|schema "[^"]*" already exists)'
     total="$(grep -c 'ERROR:' "$errfile" || true)"
-    benign="$(grep -cE 'ERROR: +role "[^"]*" does not exist' "$errfile" || true)"
+    benign="$(grep -cE "$benign_re" "$errfile" || true)"
     unexpected=$((total - benign))
-    echo "    replay errors: $total total, $benign benign role-grant, $unexpected unexpected"
+    echo "    replay errors: $total total, $benign benign (role-grant/schema-exists), $unexpected unexpected"
     if [ "$unexpected" -gt 0 ]; then
-        grep 'ERROR:' "$errfile" | grep -vE 'ERROR: +role "[^"]*" does not exist' | head -20 >&2
+        grep 'ERROR:' "$errfile" | grep -vE "$benign_re" | head -20 >&2
         die "psql replay: $unexpected unexpected errors in $label (full list: $errfile)"
     fi
     rm -f "$errfile"
