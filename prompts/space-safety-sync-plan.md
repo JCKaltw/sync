@@ -4,7 +4,8 @@
 **Revised**: 2026-09-05 (per `prompts/space-safety-sync-update-plan-request.md`)
 **Revised again**: 2026-09-05 (rev 2 — folds in the approved eyedro FDW fix per `prompts/eyedro-sync-missing-assets-research.md`)
 **Author**: Claude Code (SYNC session)
-**Status**: Awaiting Review (revision)
+**Status**: Implemented and live-verified 2026-09-06 (only the Step 4.4
+bin-repo sync-trim patch remains, a Chris task outside this repo)
 **Plan Request**: `prompts/space-safety-sync-plan-request.md`
 **Revision Request**: `prompts/space-safety-sync-update-plan-request.md`
 **Branch**: `space-safety-sync` (set by this plan's filename via `opb` / `gitcb`)
@@ -48,11 +49,11 @@
   - [x] [Step 5.2: Export failure tests 🤖](#step-52-export-failure-tests-🤖)
   - [x] [Step 5.3: Import failure tests 🤖](#step-53-import-failure-tests-🤖)
   - [x] [Step 5.4: Happy-path regression 🤖](#step-54-happy-path-regression-🤖)
-- [ ] [Phase 6: Deployment and Live Verification 🤖👤](#phase-6-deployment-and-live-verification-🤖👤)
+- [x] [Phase 6: Deployment and Live Verification 🤖👤](#phase-6-deployment-and-live-verification-🤖👤)
   - [x] [Step 6.1: Git add and commit on Mac including prompts docs 🤖](#step-61-git-add-and-commit-on-mac-including-prompts-docs-🤖)
-  - [ ] [Step 6.2: Push from Mac and pull on pg2 👤](#step-62-push-from-mac-and-pull-on-pg2-👤)
-  - [ ] [Step 6.3: Supervised live export on pg2 👤](#step-63-supervised-live-export-on-pg2-👤)
-  - [ ] [Step 6.4: Supervised live import on Mac 👤🤖](#step-64-supervised-live-import-on-mac-👤🤖)
+  - [x] [Step 6.2: Push from Mac and pull on pg2 👤](#step-62-push-from-mac-and-pull-on-pg2-👤)
+  - [x] [Step 6.3: Supervised live export on pg2 👤](#step-63-supervised-live-export-on-pg2-👤)
+  - [x] [Step 6.4: Supervised live import on Mac 👤🤖](#step-64-supervised-live-import-on-mac-👤🤖)
 - [Acceptance Criteria Mapping](#acceptance-criteria-mapping)
 
 ---
@@ -514,7 +515,8 @@ SERVER crossdb_pgdb2_server` then fails against the missing server.
   dump replay, on Darwin only, run
   `psql ... -v ON_ERROR_STOP=1 -f "$(ggdir db)/sql/mac-fdw-bootstrap.sql"`,
   and `die` loudly if that file is absent. pg2 never runs the bootstrap.
-- [ ] 👤 **db-team handoff**: the db repo provides
+- [x] 👤 *(Delivered 2026-09-06 14:59 by the db team; verified in the live
+  import — see Step 6.4.)* **db-team handoff**: the db repo provides
   `sql/mac-fdw-bootstrap.sql` — idempotent, exactly three statements:
   `CREATE EXTENSION IF NOT EXISTS postgres_fdw`; `CREATE SERVER
   crossdb_pgdb2_server` (**production's server name**, Mac-local options:
@@ -711,14 +713,14 @@ and committed to `space-safety-sync` in a single commit; tests were green
 
 ### Step 6.2: Push from Mac and pull on pg2 👤
 
-- [ ] Chris pushes from the Mac and pulls in `~/sync` on pg2, then replies
+- [x] Chris pushes from the Mac and pulls in `~/sync` on pg2, then replies
   "pull done". No scripts are ever edited directly on pg2.
 
 [Back to TOC](#table-of-contents)
 
 ### Step 6.3: Supervised live export on pg2 👤
 
-- [ ] Chris runs `./export-all.sh` on pg2. Expected: retention prune report
+- [x] Chris runs `./export-all.sh` on pg2. Expected: retention prune report
   first, space gate PASS, all five artifacts created and verified, closing
   manifest all OK with the `df` footer.
 
@@ -726,9 +728,9 @@ and committed to `space-safety-sync` in a single commit; tests were green
 
 ### Step 6.4: Supervised live import on Mac 👤🤖
 
-- [ ] 👤 Prerequisite: the db team's `sql/mac-fdw-bootstrap.sql` exists in
+- [x] 👤 Prerequisite: the db team's `sql/mac-fdw-bootstrap.sql` exists in
   `$(ggdir db)` (Step 3.7 handoff) before this run.
-- [ ] Chris runs `./import-all.sh` on the Mac. Expected: remote pre-flight
+- [x] Chris runs `./import-all.sh` on the Mac. Expected: remote pre-flight
   PASS, verify-then-swap refreshes `pgui/data`, all schemas imported,
   manifest all OK, `data.prev` present. Claude verifies `dml-ast.json` /
   `ddl-ast.json` afterward, plus the eyedro FDW state: `postgres_fdw`
@@ -737,6 +739,21 @@ and committed to `space-safety-sync` in a single commit; tests were green
   fresh export, closing the timeline race from the research). Then marks
   this plan complete. Chris then applies the Step 4.4 sync-trim patch in
   the bin repo.
+
+**Completed 2026-09-06**: Steps 6.2–6.4 done across three push/pull rounds.
+The supervised runs surfaced two real pre-existing conditions, both fixed
+and locked in by tests: (a) the combined space gate needed the max-member
+model — the sum model demanded 20 GiB against pg2's 13.2 GiB free for a
+run whose true peak is ~7.6 GiB (commit `ffc7dc5`); (b) pg_dump 15 emits
+`CREATE SCHEMA` in every schema-scoped dump, so schema-already-exists
+joined the benign whitelist after the first import attempt stopped on it
+(commit `ec67db3`). Final live run: EXPORT-ALL and IMPORT-ALL both
+SUCCEEDED, manifest all-OK ×5. Verified on the Mac afterward: `dml-ast.json`
+(2.1MB) / `ddl-ast.json` (71KB) swapped in with `data.prev` retained;
+`postgres_fdw` + `crossdb_pgdb2_server` installed; `public.product` returns
+12,012 rows through the FDW; `esb_metrics_with_intervals_one_dg` present;
+`esb_metrics_hourly` at 382 rows (was stuck at 322). The eyedro
+missing-assets gap and the 2026-08-19 loss scenario are both closed.
 
 [Back to TOC](#table-of-contents)
 
