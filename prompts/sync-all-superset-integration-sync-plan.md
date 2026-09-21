@@ -1,0 +1,249 @@
+# sync-all Superset Integration Plan
+
+## Table of Contents
+
+- [ ] <a id="toc-1"></a>[Overview](#overview)
+- [ ] <a id="toc-2"></a>[Problem Statement](#problem-statement)
+- [ ] <a id="toc-3"></a>[Reviewed Sources and Ownership](#reviewed-sources-and-ownership)
+- [ ] <a id="toc-4"></a>[Integration and Recovery Contract](#integration-and-recovery-contract)
+- [ ] <a id="toc-5"></a>[Hub Guard Reconciliation](#hub-guard-reconciliation)
+- [ ] <a id="toc-6"></a>[Phase 1: Review and Approve Scope 👤🤖](#phase-1-review-and-approve-scope-👤🤖)
+  - [ ] <a id="toc-7"></a>[Step 1.1: Confirm Owner Agreement 🤖👤](#step-11-confirm-owner-agreement-🤖👤)
+  - [ ] <a id="toc-8"></a>[Step 1.2: Approve Implementation and Select Branches 👤](#step-12-approve-implementation-and-select-branches-👤)
+- [ ] <a id="toc-9"></a>[Phase 2: Implement the Reviewed Integration 🤖](#phase-2-implement-the-reviewed-integration-🤖)
+  - [ ] <a id="toc-10"></a>[Step 2.1: Bin Adds the Single Snapshot Call 🤖](#step-21-bin-adds-the-single-snapshot-call-🤖)
+  - [ ] <a id="toc-11"></a>[Step 2.2: Sync Documents Ordering and Recovery 🤖](#step-22-sync-documents-ordering-and-recovery-🤖)
+- [ ] <a id="toc-12"></a>[Phase 3: Verify in Isolation 🤖](#phase-3-verify-in-isolation-🤖)
+  - [ ] <a id="toc-13"></a>[Step 3.1: Add the Isolated Integration Suite 🤖](#step-31-add-the-isolated-integration-suite-🤖)
+  - [ ] <a id="toc-14"></a>[Step 3.2: Run Regression and Review Evidence 🤖👤](#step-32-run-regression-and-review-evidence-🤖👤)
+- [ ] <a id="toc-15"></a>[Phase 4: Handoff and Separately Approved Acceptance 👤🤖](#phase-4-handoff-and-separately-approved-acceptance-👤🤖)
+  - [ ] <a id="toc-16"></a>[Step 4.1: Review and Commit Itemized Work 🤖👤](#step-41-review-and-commit-itemized-work-🤖👤)
+  - [ ] <a id="toc-17"></a>[Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖](#step-42-authorize-mac-rehearsals-and-return-to-pgui-👤🤖)
+- [ ] <a id="toc-18"></a>[Forward TODO and Planning Checkpoint](#forward-todo-and-planning-checkpoint)
+
+## Overview
+
+**Created / reviewed**: 2026-09-21 16:45 EDT  
+**Author**: sync@codex  
+**Status**: Planning return delivered; prior broad approval recorded below; exact integration revision review and branch selection pending. Operations unapproved.  
+**Request**: `$(ggdir sync)/prompts/sync-all-superset-integration-sync-plan-request.md`  
+**Parent**: `$(ggdir pgui)/prompts/superset-sync-push-pop-plan.md`  
+**Master**: `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md`  
+**Proposed sync branch**: `sync-all-superset-integration-sync`; Chris selects it.  
+**Observed sync branch**: `main`, unchanged.
+
+**Approval record**: `$(ggdir pgui)/messages/2026-09-21-bin-sync-plan-approval-record.md` records Chris saying "I approve of both plans" before this sync deliverable existed. Preserve that decision; PGUI must reconcile this returned revision and sole-owner patch scope against it. It does not identify a reviewed sync revision or authorize implementation on main. This turn remains explicitly planning-only.
+
+Extend the bin-owned sync-all command with one call to bin's sync-superset after successful existing analytical imports. SUP owns the PG5 live Superset metadata and PG2 live PGUI report downloads, isolated preparation and Mac publication. Sync owns sequencing, recovery guidance and integration verification. This document authorizes nothing to run.
+
+[Back to TOC](#toc-1)
+
+## Problem Statement
+
+The existing Mac refresh imports eyedro, PGDB and purify but leaves separate Superset metadata and PGUI preset/ reports behind. A later dashboard refresh can fail after those analytical imports succeed. Operators need truthful partial-completion reporting and a way to retry only the snapshot operation.
+
+PG2 runs the analytical export tools; live PostgreSQL targets are RDS, not PostgreSQL hosted on PG2. Dev PGDB is Mac PostgreSQL plus Mac JSON. Snapshot destinations are Mac Docker Superset and Mac PGUI preset/; PG5 live Superset, PG2 live hub and Hosted Preset are distinct services. No runtime state is inferred from configuration or historical success.
+
+[Back to TOC](#toc-2)
+
+## Reviewed Sources and Ownership
+
+Read-only planning evidence, 2026-09-21 16:45 EDT:
+
+- SUP contract: `$(ggdir sup)/tests/superset-snapshot/README.md`, shell entry point and controller output/confirmation path. SUP checkout HEAD `cce3cf727714e19fedb109b04ec4e9923193893b`; delivered working-tree changes also apply, so HEAD alone does not identify the contract.
+- PGUI evidence: `messages/2026-09-21-sup-step-1-2-complete.md` and `messages/2026-09-21-sup-consumer-port-guard-correction.md`. SUP reports 48 isolated tests and a disposable PostgreSQL round-trip; sync did not rerun them.
+- Bin plan: `$(ggdir bin)/prompts/sync-superset-command-bin-plan.md`, its PGUI reply, sync-all and sync-pgdb. Bin HEAD `ce6c1d24708d7373435ee2961bce7decf44f1682`.
+- Sync: export-all.sh, import-all.sh, tests/run-tests.sh, README.md, assigned request and guard plan. Sync HEAD `a1afd81cddcd5a95bfccbeb566a705d6a1899fde`. README script names/topology are historical; actual scripts govern.
+- Hub evidence: `$(ggdir sup)/messages/2026-09-21-hub-mac-clean-start-implementation-handoff.md` and `2026-09-21-hub-sup-post-sync-plan-owner-reconciliation.md` in that same messages directory.
+
+| Exact file scope | Owner / plan / branch |
+|---|---|
+| `$(ggdir bin)/sync-superset`, `tests/run_sync_superset_suite.py`, `doc/sync-superset-guide.md` under bin | bin wrapper plan; proposed `sync-superset-command-bin` branch |
+| `$(ggdir bin)/sync-all` | **bin alone edits**; integration scope below requires this plan's review and bin acknowledgement, in addition to wrapper approval |
+| `$(ggdir sync)/tests/run-sync-all-superset-tests.sh` | sync; new isolated integration suite under this plan/branch |
+| `$(ggdir sync)/README.md` | sync; document ordering, partial recovery and owner links; correct touched obsolete script/topology descriptions |
+| This sync plan and dated handoffs | sync; status/evidence maintenance, coordinate with sync@claude before overlapping edits |
+| `$(ggdir sync)/export-all.sh`, `import-all.sh`, member scripts, `sync-lib.sh`, existing shims | sync-owned, **no production change proposed** for this integration; retain current regression coverage |
+| SUP shell/controller, Docker behavior and contract | SUP only; no duplicated implementation or edits by sync/bin |
+| Hub lifecycle scripts and contract | hub only; completed clean-start work is consumed, not rebuilt |
+
+Sync accepts bin's proposed file boundary. This return requests bin/SUP acknowledgement through PGUI; it does not assert their agreement. No changes to other teams' plans or requests are proposed. If tests expose a need for extra production files, return the specific scope for review before editing them.
+
+[Back to TOC](#toc-3)
+
+## Integration and Recovery Contract
+
+**Order:** existing approved hub procedure, optional sync-trim, PG2 export-all, Mac import-all (eyedro → PGDB → purify), then exactly one sync-superset. Do not invoke sync-pgdb as a second import. Direct import-all remains analytical-only. Retention, free-space gates, manifests, remote artifact preflight, verify-before-swap and eyedro FDW behavior remain owned by existing scripts.
+
+**Arguments and consent:** sync-all invokes sync-superset with **no arguments**, inheriting stdin and reviewed environment. Do not pipe the trim answer into SUP or inject --yes. This plan adds no unattended sync-all mode. SUP flags --yes, --check, --resume and --rollback are standalone sync-superset operations; reject them and unknown sync-all arguments with usage exit 2 before trim/export/import. Preserve separately approved hub flags only if that guard is explicitly integrated; --force must never reach SUP or bypass any SUP gate. Current sync-all silently ignores arguments; early rejection is an intentional narrow change to prevent a misleading `sync-all --check` from importing data.
+
+| Boundary / result | Required behavior |
+|---|---|
+| Optional trim declined, blank or EOF | Preserve existing skip-trim behavior; this is not consent to SUP |
+| Trim requested and fails | Existing abort and exit 1; no export/import/SUP |
+| ggmap/setup/navigation or export failure | Stop; preserve nonzero status; no later stage |
+| Import failure | Stop; preserve status and existing failed-member/manifest evidence; earlier member changes may remain; SUP not attempted |
+| All analytical imports succeed | Report analytical-import completion separately before SUP |
+| sync-superset missing/nonexecutable | Exit 3, identify missing prerequisite and analytical completion; do not retry imports |
+| SUP returns 2/3/4/5/6/7 | Propagate exact status, identify Superset stage failure/decline and analytical completion; preserve SUP diagnostics |
+| SUP returns other nonzero / signal status | Preserve status; never convert interrupted operation into success |
+| SUP returns 0 | Report only that the requested SUP action completed; preserve its JSON outcome, not a blanket installation/acceptance banner |
+
+SUP status meanings are 2 usage, 3 prerequisite/source/input refusal, 4 transfer, 5 candidate/cutover/recovery, 6 post-publication validation, 7 declined. Wrapper resolution failures also use 3. New integration text goes to stderr; forward SUP stdout/stderr without rewriting, filtering or credential-bearing shell tracing. Existing analytical output is human-oriented; the entire sync-all output is not promised to be one JSON document. No new JSON parser or duplicated readiness classifier is needed: installation evidence is SUP's explicit `snapshot_installed: true`, never exit 0 alone. Check returns `preflight: "passed"` and false installation; rollback returns `recovered_previous_snapshot: true` and false installation. Even installation has `services: "stopped"`, `rendering: "not-tested"`, `runtime_acceptance: false`.
+
+A missing Docker/provider prerequisite may therefore be found after analytical import; state that partial outcome clearly. Do not add automatic --check before import: it accesses actual sources, can depend on the newly imported registry, and does not guarantee later success. No new distributed snapshot, generation protocol, archive or audit gate is introduced.
+
+**Recovery:** after a Superset failure, Chris inspects SUP's sanitized output and named run journal. Retry standalone sync-superset for a new attempt, or explicitly use --resume with the absolute RUN_DIR and unchanged settings/code/sources. Changed source or policy blocks resume; resolve through SUP and use a new approved run. Explicit --rollback restores previous reports/configuration without remote reads; it does not undo analytical imports or establish a new installed snapshot. No automated retries, analytical rollback, pruning of snapshot state, or hub/Superset restart.
+
+Installation and failures can leave Mac consumers stopped. Preserve the generated Compose overlay, active runtime/Mac keys and approved rollback target; base Compose alone can select the old configuration. SUP owns sensitive staging retention and recovery. The caller owns the originally supplied source key; sync must not read or clean it. PGUI migration Step 6.2 acceptance follows snapshot acceptance, not the reverse.
+
+[Back to TOC](#toc-4)
+
+## Hub Guard Reconciliation
+
+The apparent conflict is between two different scopes. Hub's handoff identifies branch `hub-mac-snapshot-reset`, baseline `d47d358` plus delivered implementation, and Chris's accepted clean start at 2026-09-21 10:49 EDT. It explicitly states **no sync-all changes**. The current bin sync-all has no guard; sync's `prompts/sync-all-dev-hub-guard-plan.md` still awaits approval. Thus accepted hub lifecycle work is not evidence that the wrapper guard was implemented.
+
+The guard plan's claim that hub stop does not wait is superseded by hub's delivered bounded identity-checked stop. Any future guard must consume that helper, not rebuild termination logic. Its proposed auto-stop prompt, --force and pre-import recheck remain a separate unapproved scope. This integration does not silently authorize them or mark them complete. PGUI/bin review should acknowledge this distinction before wrapper edits; the existing guard plan remains untouched pending its owner's reconciliation.
+
+For a future expressly approved rehearsal, Chris uses the established Mac dev hub stop → sync → separately approved explicit clean-start workflow. No repeat import/start is needed to establish historical completion. Do not add an automatic hub restart to either snapshot success or rollback. The narrow hub contract-document review remains independent of accepted lifecycle implementation. SUP's consumer-port guard protects Mac PGUI/PGIS ports 3000/3001/3003/3004 plus declared origins; it is not a substitute for hub lifecycle handling and never stops PGUI/PGIS itself.
+
+[Back to TOC](#toc-5)
+
+## Phase 1: Review and Approve Scope 👤🤖
+
+- [ ] Phase 1: Agree interface ownership and obtain explicit implementation approval.
+
+[Back to TOC](#toc-6)
+
+### Step 1.1: Confirm Owner Agreement 🤖👤
+
+- [ ] Step 1.1: PGUI relays this plan to bin/SUP; record their acknowledgement of the file table, no-argument call, status semantics and hub distinction. Coordinate sync-owned work with sync@claude before overlapping edits. PGUI updates its own orchestration checkpoint.
+
+**Evidence — 2026-09-21 16:45 EDT:** Delivered contracts and bin proposal reviewed; sync accepts the proposed split. Peer acknowledgement pending. No message delivery or peer approval inferred from writing a reply.
+
+[Back to TOC](#toc-7)
+
+### Step 1.2: Approve Implementation and Select Branches 👤
+
+- [ ] Step 1.2: Chris/PGUI review this plan and explicitly approve implementation, including bin's exact sync-all scope. Chris selects each branch; owners verify gitb and dirty files. Approval for SUP coding or bin's standalone wrapper alone does not approve integration.
+
+**Evidence — 2026-09-21 16:45 EDT:** Chris’s broad approval is recorded in the PGUI approval record; this exact revision did not exist then. Return it for scope reconciliation before implementation. Sync remains on main; branch selection and exact scope review pending. No commits or branch changes.
+
+[Back to TOC](#toc-8)
+
+## Phase 2: Implement the Reviewed Integration 🤖
+
+- [ ] Phase 2: Implement only the agreed wrapper patch, tests and operator documentation.
+
+[Back to TOC](#toc-9)
+
+### Step 2.1: Bin Adds the Single Snapshot Call 🤖
+
+- [ ] Step 2.1: Bin edits sync-all under its approved branch to implement the contract above: early flag validation, unchanged trim/export/import sequence, one no-argument sync-superset invocation after successful imports, separate analytical status and exact error propagation. Resolve the bin-owned executable through ggdir; no alternate controller fallback. Preserve stdin and avoid pipelines that replace the delegate exit code.
+
+Sync reviews bin's resulting diff; sync does not edit this file. Do not add a second call to import-all, a Docker helper, source credential reader or automatic start. Bin's wrapper retains direct exec delegation to SUP. If guard integration is separately approved, bin must serialize that edit and preserve its agreed pre-trim/pre-import checks; this plan alone does not implement the guard.
+
+**Evidence:** Pending approval and implementation.
+
+[Back to TOC](#toc-10)
+
+### Step 2.2: Sync Documents Ordering and Recovery 🤖
+
+- [ ] Step 2.2: Update sync README with exact stage order, analytical-only direct import-all behavior, standalone snapshot recovery, exit meanings, hub distinction and links to SUP/bin documentation. Explain no unattended sync-all mode and no readiness claim from exit 0. Document existing Mac/RDS topology accurately.
+
+No SQL/JSON database modification scripts are needed. The only new sync executable is the test runner at `$(ggdir sync)/tests/run-sync-all-superset-tests.sh`; production orchestration remains in bin. Update this living plan's TOC/body checkboxes and dated evidence immediately as each authorized item completes.
+
+**Evidence:** Pending; no code/documentation implementation performed during planning.
+
+[Back to TOC](#toc-11)
+
+## Phase 3: Verify in Isolation 🤖
+
+- [ ] Phase 3: Prove order and failure semantics without real data, services or sources.
+
+[Back to TOC](#toc-12)
+
+### Step 3.1: Add the Isolated Integration Suite 🤖
+
+- [ ] Step 3.1: Create the sync-owned shell suite using a temporary HOME, synthetic dot-source-aliases.sh and ggmap, fake bin/sync roots and call log. Test a copied bin sync-all from the agreed revision, never the installed command with real HOME. Record that bin revision/diff as test evidence.
+
+Stub sync-trim, pgs, export-all/import-all and sync-superset. Pgs records the intended remote command and routes only to fixtures; synthetic import-all logs eyedro/PGDB/purify. Add a complementary fixture case using actual import-all and the existing isolated database/transport shims to prove its single member sequence. Before that case, inspect sync-lib and every invoked shim for path/target isolation. Set all roots, manifests, FDW bootstrap, connection facts and date to temporary synthetic values. Remove inherited settings, credentials, SSH-agent and shell startup hooks. Tripwire ssh/scp/psql/pg_dump/Docker/pm2/hub/tunnel executables fail unexpected calls; cleanup removes only suite-created temporary paths. No network, Docker socket, real SUP executable or real source files.
+
+Required assertions:
+
+| Cases | Evidence required |
+|---|---|
+| Trim yes/no/blank/EOF; happy path | Correct order; PGDB exactly once; SUP exactly once after purify; no sync-pgdb |
+| Trim/setup/export failures; each import member failure; missing-artifact preflight | Exact expected status; no prohibited later stage; preserve partial member evidence |
+| Missing snapshot command; SUP statuses 2–7 and representative 42/130 | Analytical completion reported; exact final status; no retries or rollback |
+| Default SUP decline / noninteractive input | No --yes injection; inherited stdin; SUP status 7 preserved after analytical imports |
+| Synthetic install/check/rollback JSON at status 0 | Streams preserved; no wrapper claim that check/rollback installed a snapshot; no runtime/rendering claim |
+| Invalid sync-all flags including --yes/--check/--resume/--rollback/unknown | Usage 2 before trim, remote commands or imports |
+| SUP failure before and after simulated publication | No service starts, analytical rollback or automatic recovery; operator directed to journal |
+| Standalone fake resume/rollback | No analytical commands; recovery remains delegated to SUP/bin |
+| Hub boundary | No new hub start/stop/reset; separately approved guard cases, if any, remain covered by their own scope |
+
+These tests validate orchestration, not actual Docker preparation, remote registry parity, credentials or browser rendering. Missing Docker and occupied consumer ports are synthetic SUP refusal outcomes here; SUP owns their underlying guard tests.
+
+**Evidence:** Pending; no suite executed during planning.
+
+[Back to TOC](#toc-13)
+
+### Step 3.2: Run Regression and Review Evidence 🤖👤
+
+- [ ] Step 3.2: After confirming sandbox isolation, run the new suite and existing `bash tests/run-tests.sh` from sync root. Run syntax checks on the new runner and bin-owned wrapper, plus whitespace checks. Bin runs its own wrapper suite; review that evidence without substituting it for integration tests. Do not rerun SUP Docker suites for this task.
+
+Record counts, tested revisions, stdout/status assertions and limitations. Mechanically validate all plan anchors, check TOC/body status parity and verify at least one link by Cmd-click in Typora. If desktop control is unavailable, keep the manual check explicitly pending for Chris; do not report mechanical validation as Typora acceptance.
+
+**Evidence — 2026-09-21:** Planning includes no execution of import/export or application test runners. Manual Typora check pending.
+
+[Back to TOC](#toc-14)
+
+## Phase 4: Handoff and Separately Approved Acceptance 👤🤖
+
+- [ ] Phase 4: Deliver reviewed code, then obtain separate deployment and operational acceptance.
+
+[Back to TOC](#toc-15)
+
+### Step 4.1: Review and Commit Itemized Work 🤖👤
+
+- [ ] Step 4.1: Owners return tested diffs and current plan evidence. On Chris's commit instruction, sync stages only named approved files; bin commits its own files. Create new commits on Chris-selected Mac branches, never amend. Record hashes and next actions. Ask Chris to push and wait for his completion; any required remote pull is his action. No automatic merge/deploy.
+
+**Evidence:** No implementation, staging or commit authorized/performed here.
+
+[Back to TOC](#toc-16)
+
+### Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖
+
+- [ ] Step 4.2: Obtain separate explicit authorization for standalone sync-superset rehearsal, then integrated sync-all rehearsal. Chris runs the sync ritual unless he explicitly assigns an operation. Record each outcome independently; approval for one run does not authorize the next.
+
+Before actual operations, resolve existing PG2 report order 17/18 drift/dashboard 153 omission and provider chart-ID discrepancies with PGUI/SUP; do not repair them from sync. Approve actual source access to PG5 metadata and PG2 allowlisted reports/registry, Mac targets, protected key custody, reviewed content hash, database UUID mappings, distinct Mac admin/credentials and explicit origins. SUP requires local Docker Unix socket/existing images, Python 3.9+ stdlib, SSH/lsof, installed PGUI schemas, 2 GiB free disk and 512 MiB per transfer. No dependency or service auto-start. --check is a real source-access operation, not an offline rehearsal.
+
+Approve downloads, Mac consumer downtime and publication explicitly. Confirm intended custom origin ports, with PGUI/PGIS idle; SUP refuses listening/probe-error states. Standalone success must show installation of both sources, stopped app/worker/beat and the overlay location. Integrated success also proves all analytical imports completed once. Rehearsals must not deliberately corrupt real data to test failure paths.
+
+Record installation separately from later approved service start/rendering/RLS and actual Mac connection isolation/no unintended notifications or live writes. Use the generated overlay for an approved Mac app start; workers/beat stay disabled unless separately authorized. Hub clean start is likewise explicit, never automatic. Preserve protected runtime/rollback state under SUP's retention policy. Return evidence to PGUI; Chris accepts the snapshot before PGUI releases migration Step 6.2. No PG2/PG5 deployment or live service mutation is bundled.
+
+**Evidence:** All real-operation gates remain open. Historical hub acceptance and SUP synthetic verification are not acceptance of these rehearsals.
+
+[Back to TOC](#toc-17)
+
+## Forward TODO and Planning Checkpoint
+
+- [x] 1. 🤖 Read the assignment, delivered SUP contract/correction and bin wrapper plan; prepare the sync plan and PGUI reply.
+- [ ] 2. 👤🤖 Obtain bin/SUP agreement and Chris/PGUI review, including the hub distinction and exact bin patch scope.
+- [ ] 3. 👤 Chris explicitly approves implementation and selects branches; owners then implement and verify Phases 2–3.
+- [ ] 4. 👤 Verify one TOC link with Cmd-click in Typora.
+- [ ] 5. 🤖👤 Review/commit approved files; Chris pushes and handles any deployment separately.
+- [ ] 6. 👤 Resolve real-source/input gates; separately approve each Mac rehearsal and downstream acceptance.
+
+**2026-09-21 16:45 EDT:** Planning return prepared. Existing untracked work preserved. Only this new plan and the commissioned PGUI reply are written. No code, branch changes, commits, tests against services, imports, secret access, service changes or deployment. PGUI owns updates to the parent/master; delivery does not mark their review checkpoints complete.
+
+[Back to TOC](#toc-18)
+
+
+**Planning checkpoint authorization — 2026-09-21:** Chris requested committing
+AGENTS.md, the planning handoff, the existing hub-guard plan, the integration
+request and this plan on the current main branch before he runs gitcb. This is
+a documentation checkpoint only; Phase 4.1's future implementation commit remains
+pending. Chris owns the next branch selection and push. The PGUI reply lives in
+pgui and is not included in this sync commit.
