@@ -9,32 +9,32 @@
 - [ ] <a id="toc-5"></a>[Hub Guard Reconciliation](#hub-guard-reconciliation)
 - [ ] <a id="toc-6"></a>[Phase 1: Review and Approve Scope 👤🤖](#phase-1-review-and-approve-scope-👤🤖)
   - [ ] <a id="toc-7"></a>[Step 1.1: Confirm Owner Agreement 🤖👤](#step-11-confirm-owner-agreement-🤖👤)
-  - [ ] <a id="toc-8"></a>[Step 1.2: Approve Implementation and Select Branches 👤](#step-12-approve-implementation-and-select-branches-👤)
-- [ ] <a id="toc-9"></a>[Phase 2: Implement the Reviewed Integration 🤖](#phase-2-implement-the-reviewed-integration-🤖)
-  - [ ] <a id="toc-10"></a>[Step 2.1: Bin Adds the Single Snapshot Call 🤖](#step-21-bin-adds-the-single-snapshot-call-🤖)
-  - [ ] <a id="toc-11"></a>[Step 2.2: Sync Documents Ordering and Recovery 🤖](#step-22-sync-documents-ordering-and-recovery-🤖)
+  - [x] <a id="toc-8"></a>[Step 1.2: Approve Implementation and Select Branches 👤](#step-12-approve-implementation-and-select-branches-👤)
+- [x] <a id="toc-9"></a>[Phase 2: Implement the Reviewed Integration 🤖](#phase-2-implement-the-reviewed-integration-🤖)
+  - [x] <a id="toc-10"></a>[Step 2.1: Bin Adds the Single Snapshot Call 🤖](#step-21-bin-adds-the-single-snapshot-call-🤖)
+  - [x] <a id="toc-11"></a>[Step 2.2: Sync Documents Ordering and Recovery 🤖](#step-22-sync-documents-ordering-and-recovery-🤖)
 - [ ] <a id="toc-12"></a>[Phase 3: Verify in Isolation 🤖](#phase-3-verify-in-isolation-🤖)
-  - [ ] <a id="toc-13"></a>[Step 3.1: Add the Isolated Integration Suite 🤖](#step-31-add-the-isolated-integration-suite-🤖)
+  - [x] <a id="toc-13"></a>[Step 3.1: Add the Isolated Integration Suite 🤖](#step-31-add-the-isolated-integration-suite-🤖)
   - [ ] <a id="toc-14"></a>[Step 3.2: Run Regression and Review Evidence 🤖👤](#step-32-run-regression-and-review-evidence-🤖👤)
 - [ ] <a id="toc-15"></a>[Phase 4: Handoff and Separately Approved Acceptance 👤🤖](#phase-4-handoff-and-separately-approved-acceptance-👤🤖)
-  - [ ] <a id="toc-16"></a>[Step 4.1: Review and Commit Itemized Work 🤖👤](#step-41-review-and-commit-itemized-work-🤖👤)
+  - [x] <a id="toc-16"></a>[Step 4.1: Review and Commit Itemized Work 🤖👤](#step-41-review-and-commit-itemized-work-🤖👤)
   - [ ] <a id="toc-17"></a>[Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖](#step-42-authorize-mac-rehearsals-and-return-to-pgui-👤🤖)
 - [ ] <a id="toc-18"></a>[Forward TODO and Planning Checkpoint](#forward-todo-and-planning-checkpoint)
 
 ## Overview
 
-**Created / reviewed**: 2026-09-21 16:45 EDT  
-**Author**: sync@codex  
-**Status**: Planning return delivered; prior broad approval recorded below; exact integration revision review and branch selection pending. Operations unapproved.  
-**Request**: `$(ggdir sync)/prompts/sync-all-superset-integration-sync-plan-request.md`  
-**Parent**: `$(ggdir pgui)/prompts/superset-sync-push-pop-plan.md`  
-**Master**: `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md`  
-**Proposed sync branch**: `sync-all-superset-integration-sync`; Chris selects it.  
-**Observed sync branch**: `main`, unchanged.
+**Created / reviewed**: 2026-09-21 16:45 EDT
+**Author**: sync@codex
+**Status**: Sync implementation complete; 158 isolated integration assertions and 56 analytical regression assertions pass. Bin patch reviewed. Sync commit authorized 2026-09-21 17:14 EDT; Chris owns merge/push. Separate SUP acknowledgement, Typora check and operational acceptance remain open.
+**Request**: `$(ggdir sync)/prompts/sync-all-superset-integration-sync-plan-request.md`
+**Parent**: `$(ggdir pgui)/prompts/superset-sync-push-pop-plan.md`
+**Master**: `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md`
+**Selected sync branch**: `sync-all-superset-integration-sync`; selected by Chris.
+**Observed sync branch**: `sync-all-superset-integration-sync`, selected by Chris and verified 2026-09-21 16:54 EDT.
 
-**Approval record**: `$(ggdir pgui)/messages/2026-09-21-bin-sync-plan-approval-record.md` records Chris saying "I approve of both plans" before this sync deliverable existed. Preserve that decision; PGUI must reconcile this returned revision and sole-owner patch scope against it. It does not identify a reviewed sync revision or authorize implementation on main. This turn remains explicitly planning-only.
+**Approval record**: `$(ggdir pgui)/messages/2026-09-21-bin-sync-plan-approval-record.md` records Chris saying "I approve of both plans" before this sync deliverable existed. Preserve that decision; PGUI must reconcile this returned revision and sole-owner patch scope against it. It does not identify a reviewed sync revision or authorize implementation on main. That record described the planning turn. Chris subsequently instructed “Please proceed with the work. I have done the gitcb”; sync implementation is now authorized on his selected branch.
 
-Extend the bin-owned sync-all command with one call to bin's sync-superset after successful existing analytical imports. SUP owns the PG5 live Superset metadata and PG2 live PGUI report downloads, isolated preparation and Mac publication. Sync owns sequencing, recovery guidance and integration verification. This document authorizes nothing to run.
+Extend the bin-owned sync-all command with one call to bin's sync-superset after successful existing analytical imports. SUP owns the PG5 live Superset metadata and PG2 live PGUI report downloads, isolated preparation and Mac publication. Sync owns sequencing, recovery guidance and integration verification. Implementation and isolated verification are authorized by Chris’s later instruction; real operations remain separately gated.
 
 [Back to TOC](#toc-1)
 
@@ -67,7 +67,7 @@ Read-only planning evidence, 2026-09-21 16:45 EDT:
 | SUP shell/controller, Docker behavior and contract | SUP only; no duplicated implementation or edits by sync/bin |
 | Hub lifecycle scripts and contract | hub only; completed clean-start work is consumed, not rebuilt |
 
-Sync accepts bin's proposed file boundary. This return requests bin/SUP acknowledgement through PGUI; it does not assert their agreement. No changes to other teams' plans or requests are proposed. If tests expose a need for extra production files, return the specific scope for review before editing them.
+Sync accepts bin’s file boundary. PGUI’s Subsequent Confirmation in the approval record and bin’s Phase 1 evidence now explicitly accept this exact scope. Separate SUP acknowledgement has not been received; implementation consumes SUP’s delivered contract unchanged. No changes to other teams' plans or requests are proposed. If tests expose a need for extra production files, return the specific scope for review before editing them.
 
 [Back to TOC](#toc-3)
 
@@ -101,7 +101,7 @@ Installation and failures can leave Mac consumers stopped. Preserve the generate
 
 ## Hub Guard Reconciliation
 
-The apparent conflict is between two different scopes. Hub's handoff identifies branch `hub-mac-snapshot-reset`, baseline `d47d358` plus delivered implementation, and Chris's accepted clean start at 2026-09-21 10:49 EDT. It explicitly states **no sync-all changes**. The current bin sync-all has no guard; sync's `prompts/sync-all-dev-hub-guard-plan.md` still awaits approval. Thus accepted hub lifecycle work is not evidence that the wrapper guard was implemented.
+The apparent conflict is between two different scopes. Hub's handoff identifies branch `hub-mac-snapshot-reset`, baseline `d47d358` plus delivered implementation, and Chris's accepted clean start at 2026-09-21 10:49 EDT. It explicitly states **no sync-all changes**. The inspected and implemented bin sync-all has no hub guard; sync's `prompts/sync-all-dev-hub-guard-plan.md` still awaits approval. Thus accepted hub lifecycle work is not evidence that the wrapper guard was implemented.
 
 The guard plan's claim that hub stop does not wait is superseded by hub's delivered bounded identity-checked stop. Any future guard must consume that helper, not rebuild termination logic. Its proposed auto-stop prompt, --force and pre-import recheck remain a separate unapproved scope. This integration does not silently authorize them or mark them complete. PGUI/bin review should acknowledge this distinction before wrapper edits; the existing guard plan remains untouched pending its owner's reconciliation.
 
@@ -119,41 +119,41 @@ For a future expressly approved rehearsal, Chris uses the established Mac dev hu
 
 - [ ] Step 1.1: PGUI relays this plan to bin/SUP; record their acknowledgement of the file table, no-argument call, status semantics and hub distinction. Coordinate sync-owned work with sync@claude before overlapping edits. PGUI updates its own orchestration checkpoint.
 
-**Evidence — 2026-09-21 16:45 EDT:** Delivered contracts and bin proposal reviewed; sync accepts the proposed split. Peer acknowledgement pending. No message delivery or peer approval inferred from writing a reply.
+**Evidence — 2026-09-21 17:00 EDT:** PGUI Subsequent Confirmation accepts the delivered scope and authorizes coding; bin’s own Phase 1 evidence accepts sole wrapper ownership, flags, status and hub distinction. SUP’s delivered contract is unchanged; separate SUP acknowledgement is still unrecorded, so this step remains open. Sync began from a clean tree with no overlapping dirty edits; the new test and README are sync-owned.
 
 [Back to TOC](#toc-7)
 
 ### Step 1.2: Approve Implementation and Select Branches 👤
 
-- [ ] Step 1.2: Chris/PGUI review this plan and explicitly approve implementation, including bin's exact sync-all scope. Chris selects each branch; owners verify gitb and dirty files. Approval for SUP coding or bin's standalone wrapper alone does not approve integration.
+- [x] Step 1.2: Chris/PGUI review this plan and explicitly approve implementation, including bin's exact sync-all scope. Chris selects each branch; owners verify gitb and dirty files. Approval for SUP coding or bin's standalone wrapper alone does not approve integration.
 
-**Evidence — 2026-09-21 16:45 EDT:** Chris’s broad approval is recorded in the PGUI approval record; this exact revision did not exist then. Return it for scope reconciliation before implementation. Sync remains on main; branch selection and exact scope review pending. No commits or branch changes.
+**Evidence — 2026-09-21 17:00 EDT:** Chris’s direct instruction, PGUI Subsequent Confirmation and bin Phase 1 acknowledgement approve the exact integration scope. Chris-selected branches verified: sync-all-superset-integration-sync and sync-superset-command-bin. No branch changed by sync@codex.
 
 [Back to TOC](#toc-8)
 
 ## Phase 2: Implement the Reviewed Integration 🤖
 
-- [ ] Phase 2: Implement only the agreed wrapper patch, tests and operator documentation.
+- [x] Phase 2: Implement only the agreed wrapper patch, tests and operator documentation.
 
 [Back to TOC](#toc-9)
 
 ### Step 2.1: Bin Adds the Single Snapshot Call 🤖
 
-- [ ] Step 2.1: Bin edits sync-all under its approved branch to implement the contract above: early flag validation, unchanged trim/export/import sequence, one no-argument sync-superset invocation after successful imports, separate analytical status and exact error propagation. Resolve the bin-owned executable through ggdir; no alternate controller fallback. Preserve stdin and avoid pipelines that replace the delegate exit code.
+- [x] Step 2.1: Bin edits sync-all under its approved branch to implement the contract above: early flag validation, unchanged trim/export/import sequence, one no-argument sync-superset invocation after successful imports, separate analytical status and exact error propagation. Resolve the bin-owned executable through ggdir; no alternate controller fallback. Preserve stdin and avoid pipelines that replace the delegate exit code.
 
 Sync reviews bin's resulting diff; sync does not edit this file. Do not add a second call to import-all, a Docker helper, source credential reader or automatic start. Bin's wrapper retains direct exec delegation to SUP. If guard integration is separately approved, bin must serialize that edit and preserve its agreed pre-trim/pre-import checks; this plan alone does not implement the guard.
 
-**Evidence:** Pending approval and implementation.
+**Evidence — 2026-09-21 17:00 EDT:** Reviewed bin’s working-tree sync-all: early argument rejection, original trim/export/import sequence, one no-argument SUP call, analytical partial-completion reporting and exact delegated status. Integration suite passes against SHA256 `8eba7ba702494ee306021397e782e0a8d4d6e74d476092931b5214296bf7b57e`. No bin file was edited by sync. No hub lifecycle or production sync script changes.
 
 [Back to TOC](#toc-10)
 
 ### Step 2.2: Sync Documents Ordering and Recovery 🤖
 
-- [ ] Step 2.2: Update sync README with exact stage order, analytical-only direct import-all behavior, standalone snapshot recovery, exit meanings, hub distinction and links to SUP/bin documentation. Explain no unattended sync-all mode and no readiness claim from exit 0. Document existing Mac/RDS topology accurately.
+- [x] Step 2.2: Update sync README with exact stage order, analytical-only direct import-all behavior, standalone snapshot recovery, exit meanings, hub distinction and links to SUP/bin documentation. Explain no unattended sync-all mode and no readiness claim from exit 0. Document existing Mac/RDS topology accurately.
 
 No SQL/JSON database modification scripts are needed. The only new sync executable is the test runner at `$(ggdir sync)/tests/run-sync-all-superset-tests.sh`; production orchestration remains in bin. Update this living plan's TOC/body checkboxes and dated evidence immediately as each authorized item completes.
 
-**Evidence:** Pending; no code/documentation implementation performed during planning.
+**Evidence — 2026-09-21 16:59 EDT:** Updated README with ordering, owner boundaries, partial outcomes, standalone recovery, status semantics, Mac/RDS topology, source/service gates and isolated verification instructions. Production export/import scripts remain unchanged.
 
 [Back to TOC](#toc-11)
 
@@ -165,7 +165,7 @@ No SQL/JSON database modification scripts are needed. The only new sync executab
 
 ### Step 3.1: Add the Isolated Integration Suite 🤖
 
-- [ ] Step 3.1: Create the sync-owned shell suite using a temporary HOME, synthetic dot-source-aliases.sh and ggmap, fake bin/sync roots and call log. Test a copied bin sync-all from the agreed revision, never the installed command with real HOME. Record that bin revision/diff as test evidence.
+- [x] Step 3.1: Create the sync-owned shell suite using a temporary HOME, synthetic dot-source-aliases.sh and ggmap, fake bin/sync roots and call log. Test a copied bin sync-all from the agreed revision, never the installed command with real HOME. Record that bin revision/diff as test evidence.
 
 Stub sync-trim, pgs, export-all/import-all and sync-superset. Pgs records the intended remote command and routes only to fixtures; synthetic import-all logs eyedro/PGDB/purify. Add a complementary fixture case using actual import-all and the existing isolated database/transport shims to prove its single member sequence. Before that case, inspect sync-lib and every invoked shim for path/target isolation. Set all roots, manifests, FDW bootstrap, connection facts and date to temporary synthetic values. Remove inherited settings, credentials, SSH-agent and shell startup hooks. Tripwire ssh/scp/psql/pg_dump/Docker/pm2/hub/tunnel executables fail unexpected calls; cleanup removes only suite-created temporary paths. No network, Docker socket, real SUP executable or real source files.
 
@@ -185,7 +185,7 @@ Required assertions:
 
 These tests validate orchestration, not actual Docker preparation, remote registry parity, credentials or browser rendering. Missing Docker and occupied consumer ports are synthetic SUP refusal outcomes here; SUP owns their underlying guard tests.
 
-**Evidence:** Pending; no suite executed during planning.
+**Evidence — 2026-09-21 17:00 EDT:** Added executable tests/run-sync-all-superset-tests.sh with clean environment, synthetic HOME/ggmap, copied owner wrappers, tripwire commands, actual import-all/member scripts against temporary archives and existing shims, plus standalone resume/rollback delegation to a synthetic SUP shell. Final run: 158 assertions passed, 0 failed. The initial old-wrapper baseline correctly failed 76 integration assertions; bin’s delivered patch resolves those gaps. Standalone wrapper SHA256 `ddf27299feb58931bb60458788e11cafc593021eb7076ea4cbce20b63879fd49`. All temporary test trees removed by test cleanup.
 
 [Back to TOC](#toc-13)
 
@@ -195,7 +195,7 @@ These tests validate orchestration, not actual Docker preparation, remote regist
 
 Record counts, tested revisions, stdout/status assertions and limitations. Mechanically validate all plan anchors, check TOC/body status parity and verify at least one link by Cmd-click in Typora. If desktop control is unavailable, keep the manual check explicitly pending for Chris; do not report mechanical validation as Typora acceptance.
 
-**Evidence — 2026-09-21:** Planning includes no execution of import/export or application test runners. Manual Typora check pending.
+**Evidence — 2026-09-21 17:00 EDT:** New suite: 158/158; existing analytical tests: 56/56 in a fresh HOME/TMPDIR with env -i. Read sync-lib, member scripts and all invoked shims before testing; actual transport/database commands were not used. Shell syntax checks and git diff --check pass. Internal anchors verified mechanically. Bin’s updated Step 3.1 reports 11 passing unittest cases; its Step 3.2 independently reran this integration suite with 158 passing assertions. Sync reviewed that dated evidence without rerunning bin’s suite. Only the manual Typora Cmd-click portion of this step remains pending, so this step/Phase 3 remain open. No real import/export, credentials, Docker/service operation or acceptance is implied.
 
 [Back to TOC](#toc-14)
 
@@ -207,9 +207,11 @@ Record counts, tested revisions, stdout/status assertions and limitations. Mecha
 
 ### Step 4.1: Review and Commit Itemized Work 🤖👤
 
-- [ ] Step 4.1: Owners return tested diffs and current plan evidence. On Chris's commit instruction, sync stages only named approved files; bin commits its own files. Create new commits on Chris-selected Mac branches, never amend. Record hashes and next actions. Ask Chris to push and wait for his completion; any required remote pull is his action. No automatic merge/deploy.
+- [x] Step 4.1: Owners return tested diffs and current plan evidence. On Chris's commit instruction, sync stages only named approved files; bin commits its own files. Create new commits on Chris-selected Mac branches, never amend. Record hashes and next actions. Ask Chris to push and wait for his completion; any required remote pull is his action. No automatic merge/deploy.
 
-**Evidence:** No implementation, staging or commit authorized/performed here.
+**Evidence — 2026-09-21 17:00 EDT:** Planning checkpoint commit `191b2e6` is complete. Current implementation changes are uncommitted; this turn authorizes coding/tests, not another commit. No staging, commit, push or deployment performed.
+
+**Commit checkpoint — 2026-09-21 17:14 EDT:** Chris explicitly requested committing the four listed sync files on sync-all-superset-integration-sync and will merge to main. The new commit containing this entry is titled `test: verify sync-all Superset integration and document recovery`. Scope: README.md, this plan, messages/2026-09-21-sync-superset-implementation-checkpoint.md and tests/run-sync-all-superset-tests.sh. Existing 158 integration and 56 analytical passing assertions remain applicable; no executable changes since verification. Sync's Step 4.1 is complete with this checkpoint; bin owns its independent commit. Next action: Chris merges and pushes, then reports completion. No merge, push or deployment by Codex.
 
 [Back to TOC](#toc-16)
 
@@ -230,10 +232,13 @@ Record installation separately from later approved service start/rendering/RLS a
 ## Forward TODO and Planning Checkpoint
 
 - [x] 1. 🤖 Read the assignment, delivered SUP contract/correction and bin wrapper plan; prepare the sync plan and PGUI reply.
-- [ ] 2. 👤🤖 Obtain bin/SUP agreement and Chris/PGUI review, including the hub distinction and exact bin patch scope.
-- [ ] 3. 👤 Chris explicitly approves implementation and selects branches; owners then implement and verify Phases 2–3.
+- [ ] 2. 👤🤖 SUP acknowledgement remains unrecorded; Chris/PGUI approval and bin ownership/hub acknowledgement are complete (2026-09-21 17:00 EDT).
+- [x] 3. 👤 Chris approved sync implementation and selected sync-all-superset-integration-sync; verified 2026-09-21 16:54 EDT.
+- [x] 3.1 🤖 Sync implementation and isolated verification against bin’s delivered wrapper complete (158 integration + 56 analytical assertions).
+- [x] 3.2 🤖 Reviewed bin’s 11 passing unittest cases and independent 158-assertion integration rerun (2026-09-21 17:00 EDT).
 - [ ] 4. 👤 Verify one TOC link with Cmd-click in Typora.
-- [ ] 5. 🤖👤 Review/commit approved files; Chris pushes and handles any deployment separately.
+- [x] 5. 🤖 Chris authorized the four-file sync implementation commit on the selected branch (2026-09-21 17:14 EDT); checkpoint is the commit containing this entry.
+- [ ] 5.1 👤 Chris merges to main and pushes; deployment remains separately authorized.
 - [ ] 6. 👤 Resolve real-source/input gates; separately approve each Mac rehearsal and downstream acceptance.
 
 **2026-09-21 16:45 EDT:** Planning return prepared. Existing untracked work preserved. Only this new plan and the commissioned PGUI reply are written. No code, branch changes, commits, tests against services, imports, secret access, service changes or deployment. PGUI owns updates to the parent/master; delivery does not mark their review checkpoints complete.
@@ -247,3 +252,9 @@ request and this plan on the current main branch before he runs gitcb. This is
 a documentation checkpoint only; Phase 4.1's future implementation commit remains
 pending. Chris owns the next branch selection and push. The PGUI reply lives in
 pgui and is not included in this sync commit.
+
+**Checkpoint — 2026-09-21 16:54 EDT:** Planning files committed as `191b2e6` on main at Chris’s request; Chris then selected the implementation branch. That commit is complete and must not be repeated. Push not inferred. Bin is on sync-superset-command-bin, but inspected sync-all remains the old analytical-only wrapper and sync-superset is absent. Sync builds tests/documentation independently; bin alone owns its implementation.
+
+**Implementation checkpoint — 2026-09-21 17:00 EDT:** README and isolated suite complete; bin’s independently written wrapper reviewed and verified by sync. Next: owner review of handoff/test evidence, manual Typora check, then a separately authorized itemized implementation commit. Real-source and service gates remain unchanged.
+
+**Latest checkpoint — 2026-09-21 17:14 EDT:** Sync implementation commit authorized and recorded in Step 4.1; prior pending-commit statements are historical. Chris's merge/push is next. Typora, peer and operational gates remain open.
