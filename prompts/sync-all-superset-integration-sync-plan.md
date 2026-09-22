@@ -2,6 +2,10 @@
 
 ## Table of Contents
 
+- [ ] [Revision R: Copy-First Full Refresh 🤖👤](#revision-r-copy-first-full-refresh-🤖👤)
+  - [ ] [Step R.1: Align integration tests and instructions 🤖](#step-r1-align-integration-tests-and-instructions-🤖)
+  - [ ] [Step R.2: Rehearse the full refresh 👤🤖](#step-r2-rehearse-the-full-refresh-👤🤖)
+
 - [ ] <a id="toc-1"></a>[Overview](#overview)
 - [ ] <a id="toc-2"></a>[Problem Statement](#problem-statement)
 - [ ] <a id="toc-3"></a>[Reviewed Sources and Ownership](#reviewed-sources-and-ownership)
@@ -20,6 +24,61 @@
   - [x] <a id="toc-16"></a>[Step 4.1: Review and Commit Itemized Work 🤖👤](#step-41-review-and-commit-itemized-work-🤖👤)
   - [ ] <a id="toc-17"></a>[Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖](#step-42-authorize-mac-rehearsals-and-return-to-pgui-👤🤖)
 - [ ] <a id="toc-18"></a>[Forward TODO and Planning Checkpoint](#forward-todo-and-planning-checkpoint)
+
+## Revision R: Copy-First Full Refresh 🤖👤
+
+**2026-09-21:** Baseline implementation/tests committed and merged by Chris.
+Parent `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md` Phase S now governs
+execution. SUP child Revision R copies live state faithfully and treats semantic
+report/registry/provider differences as warnings, not import blockers. Earlier
+source-repair or blanket content-hash prerequisites are superseded. No generator
+or automatic report repair is part of sync-all. Existing safety gates remain.
+
+[Back to TOC](#table-of-contents)
+
+### Step R.1: Align integration tests and instructions 🤖
+
+**Authorization, 2026-09-21:** Chris, relayed via pgui@claude, approves plan
+updates, integration tests and README changes for this narrow forward fix.
+Chris selects the branch. Analytical production scripts remain UNTOUCHED;
+bin alone changes sync-all. No credentials, real refresh or service changes.
+This revision supersedes older unconditional-SUP-call requirements below.
+
+- [ ] Add unset-settings coverage: successful analytical imports, zero SUP calls,
+  exact stderr `Analytical refresh complete; Superset skipped: not configured`,
+  exit 0. Assert that any analytical failure still fails and does not print this
+  success notice. Missing SUP must not matter in the intentional unset case.
+- [ ] Add set-empty and set-invalid coverage: the setting is present, so invoke
+  SUP normally and propagate its failure. No fallback skip. Configured successful
+  operation still calls SUP exactly once after the single analytical import.
+- [ ] Update README to explain analytical-only success versus a complete Superset
+  refresh. Unset is intentional omission, not snapshot_installed=true. No automatic
+  settings creation, secret access or source repair. Coordinate test fixtures with
+  bin's final patch and record the tested file hash.
+
+- [ ] On approval and a Chris-selected branch, update existing tests/README for
+  successful snapshot installation with warnings. Assert one analytical import
+  sequence and one SUP invocation when configured, preserved diagnostics and no automatic repair.
+- [ ] Keep true export/transfer/import/safety failures nonzero with accurate
+  partial completion. Preserve bin-only ownership of sync-all and unchanged
+  analytical scripts; no transport rewrite, new generator or duplicate PGDB import.
+- [ ] Document the simple sequence: stop Mac writers; export/transfer/import
+  PG2/RDS state and PG5 metadata via the existing pipeline; apply necessary Mac
+  settings; clean-start Mac hub and safely start required Mac apps; inspect results.
+  The automatic hub wrapper guard remains separate; manual clean stop is required.
+
+[Back to TOC](#table-of-contents)
+
+### Step R.2: Rehearse the full refresh 👤🤖
+
+- [ ] After SUP/bin revised tests and actual-input preparation, obtain the bounded
+  real refresh authorization in parent Phase S. Execute sync-all once on Mac.
+- [ ] Record faithful imports and warnings separately. Inspect issues afterward;
+  don't require a perfect live registry or repeat successful imports for warnings.
+- [ ] Follow SUP's generated runtime configuration for approved Mac starts,
+  keep copied jobs disabled, and return evidence to PGUI. No implicit live changes.
+
+[Back to TOC](#table-of-contents)
 
 ## Overview
 
