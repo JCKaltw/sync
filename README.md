@@ -43,9 +43,25 @@ The reviewed sync-all extension performs:
 2. Optional sync-trim, retaining its existing prompt.
 3. PG2 export-all: eyedro → PGDB → purify.
 4. Mac import-all: eyedro → PGDB → purify, each once.
-5. One no-argument sync-superset, only after every analytical import succeeds.
+5. After every analytical import succeeds, inspect whether
+   `SUPERSET_SNAPSHOT_SETTINGS` is set. If truly unset, skip Superset without
+   resolving or invoking its wrapper. If present, call sync-superset once with
+   no arguments and retain SUP's normal validation.
 
-SUP asks its own default-no confirmation. The trim answer is not reused as
+The R.1 analytical-only path prints exactly to stderr and exits 0:
+
+```text
+Analytical refresh complete; Superset skipped: not configured
+```
+
+This is analytical-only success, not a full dashboard refresh. Present-but-empty,
+whitespace, missing-file or malformed settings are configured inputs to validate;
+they must fail loudly rather than silently skip. Earlier analytical failures remain
+nonzero and never print the successful skip notice. Standalone sync-superset
+always delegates normally; it does not gain an unset-settings skip mode.
+
+When configured, SUP asks its own default-no confirmation. The trim answer is
+not reused as
 snapshot consent. No --yes is injected, and there is no unattended sync-all mode.
 Use --check, --yes, --resume and --rollback only with standalone sync-superset;
 the integrated wrapper rejects these and unknown arguments before any stage.
@@ -70,9 +86,11 @@ transactionally rolled back. Do not treat a failed import-all as “nothing chan
 |---|---|
 | Trim requested and fails | Exit 1; no export/import/snapshot |
 | Setup, export or analytical import fails | Preserve nonzero status; no later stage or snapshot |
-| Analytical imports succeed, snapshot wrapper missing/nonexecutable | Exit 3; explicitly report analytical completion |
+| Analytical imports succeed, settings truly unset | Exit 0 with exact skip notice; no SUP resolution or invocation |
+| Settings present, snapshot wrapper missing/nonexecutable | Exit 3; explicitly report analytical completion |
+| Settings present but empty/invalid | Delegate to normal validation; propagate failure, never skip |
 | SUP fails or declines | Preserve SUP status; report analytical completion separately |
-| SUP exits 0 | Requested action completed; inspect SUP JSON for what happened |
+| SUP exits 0, including installation with semantic warnings | Requested action completed; preserve warnings and inspect SUP JSON for what happened |
 
 SUP codes: 2 usage, 3 prerequisite/source/input refusal, 4 transfer,
 5 candidate/cutover/recovery failure, 6 post-publication validation, 7 declined.
@@ -91,8 +109,11 @@ document. SUP output is preserved; added integration messages go to stderr.
 
 After a snapshot failure, inspect SUP's sanitized output and named run journal.
 Do not rerun sync-all just to retry Superset. Use standalone sync-superset for a
-new attempt or explicitly resume the absolute RUN_DIR with unchanged code,
-settings and sources. Source/policy changes can require a new approved run.
+new attempt or explicitly resume the absolute RUN_DIR under SUP's R.1 contract.
+Live source advancement alone must not block resume. SUP still verifies staged
+download/prepared-artifact checksums and original provenance, and must not mix
+source generations across partial downloads. Code/settings compatibility remains
+SUP-owned; a policy change can require a new approved run.
 Explicit rollback restores previous reports/configuration without remote reads;
 it does not undo analytical imports or install a new snapshot. There are no
 automatic retries, rollback, service restarts or snapshot-state cleanup by sync.
@@ -104,14 +125,24 @@ Mac app start must use the overlay; base Compose alone can select the old config
 Workers/beat and the Mac hub do not start implicitly.
 
 SUP requires reviewed settings, UUID mappings, distinct Mac admin/credentials,
-protected separately authorized source/Mac keys and a reviewed metadata-content
-hash. It owns validation and staging retention. Sync does not retrieve secrets.
+protected separately authorized source/Mac keys. R.1 removes the blanket
+metadata-content review hash gate while preserving Mac-only connections, job and
+egress isolation. SUP owns validation and staging retention. Sync does not
+retrieve secrets.
 The caller owns cleanup of the original supplied source key. Never blindly delete
 an active runtime directory or candidate databases.
 
-Before real rehearsal, resolve PGUI report order/omission and provider-ID drift,
-approve source access, actual inputs/content review, downloads, downtime and
-publication. --check accesses actual sources even though it does not download or
+Under R.1, semantic report order/omission, registry and provider differences are
+warnings, not repair-first prerequisites. Copy source values faithfully; do not
+regenerate reports or repair curation as part of sync. SUP replaces its complete
+managed report set with backup, including removal of managed files absent from
+the source; sync does not manually delete assets. Genuine integrity, credential,
+destination and isolation failures remain hard errors. Successful installation
+with warnings does not establish safe PGUI editing or correct rendering.
+
+Before real rehearsal, approve source access, actual protected inputs, downloads,
+downtime and publication. --check accesses actual sources even though it does not
+download or
 publish. SUP requires local Docker socket/existing images, Python 3.9+ stdlib,
 SSH, lsof, PGUI schemas, 2 GiB free space and at most 512 MiB per transfer.
 It checks Mac PGUI/PGIS ports 3000/3001/3003/3004 plus declared custom origin ports;
@@ -121,6 +152,28 @@ Standalone and integrated Mac rehearsals require separate operational approval.
 Installation, subsequent service starts/rendering/RLS and snapshot acceptance are
 separate from coding/tests. PGUI migration Step 6.2 acceptance follows snapshot
 acceptance. Chris handles pushes and any required remote pulls/deployment.
+
+## Operator sequence after separate Phase S authorization
+
+This describes the later approved refresh, not an instruction to run it now:
+
+1. Stop Mac writers cleanly and verify they are stopped. The automatic hub guard
+   remains a separate proposal; manual clean stop is required.
+2. Use the existing pipeline to export, transfer and import PG2/RDS analytical
+   state, then PG5 Superset metadata and PG2 managed reports when configured.
+   No second PGDB import or report regeneration is needed.
+3. Let SUP apply required Mac settings and keep copied background jobs disabled.
+   Preserve its generated runtime configuration and Compose overlay.
+4. With explicit start approval, clean-start the Mac dev hub using hub's existing
+   procedure and safely start only the required Mac apps using SUP's generated
+   configuration. Nothing in sync-all automatically starts them.
+5. Inspect imported state, warnings, rendering and access behavior. Record semantic
+   issues after copying; do not repeat a successful import merely for warnings or
+   treat installation as permission for PGUI editing.
+
+During the current coding assignment, leave the Mac dev hub stopped and the PG2
+live hub stopped throughout Phase S. Do not change legacy live apps or PG5 services.
+Today's already-imported Mac dev PGDB and preset reports are not test fixtures.
 
 ## Analytical artifacts and connection facts
 
@@ -140,7 +193,11 @@ password variables. Do not print credentials in logs.
 
 From the sync root, the integration suite accepts an explicit bin-owned wrapper
 file, copies it into a temporary sandbox, and runs it with synthetic HOME/ggmap,
-clean environment, fake commands and temporary archives. It never invokes the
+clean environment, fake commands and temporary archives. R.1 covers unset versus
+present settings, exact skip notice, no resolution/call on skip, analytical error
+propagation, configured single invocation and warning-preserving success. Invalid
+settings cases simulate SUP refusal; they do not test SUP's actual JSON parser.
+Final acceptance references bin's completed tested file hash. It never invokes the
 real snapshot controller. Its SHA256 output identifies the wrapper tested.
 
 ```bash
