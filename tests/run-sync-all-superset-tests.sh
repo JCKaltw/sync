@@ -45,11 +45,12 @@ new_case() {
     export CASE_ROOT CALL_LOG="$CASE_ROOT/logs/calls"
     : > "$CALL_LOG"
     : > "$CASE_ROOT/logs/tripwire"
+    : > "$CASE_ROOT/logs/resolutions"
     cp "$SB/sync-all-under-test" "$CASE_ROOT/bin/sync-all"
     chmod +x "$CASE_ROOT/bin/sync-all"
     export PATH="$CASE_ROOT/tools:$CASE_ROOT/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     export TRIM_RC=0 EXPORT_RC=0 IMPORT_RC=0 SUP_RC=0 ALIAS_RC=0 GGMAP_RC=0 GG_RC=0
-    export FAIL_MEMBER= SUP_READ_INPUT=0 SUP_MODE=install SUP_PHASE=before
+    export FAIL_MEMBER= SUP_READ_INPUT=0 SUP_MODE=install SUP_PHASE=before BIN_RESOLVE_RC=0
     export SUPERSET_SNAPSHOT_SETTINGS="$CASE_ROOT/synthetic-settings.json"
     export SUPERSET_SNAPSHOT_STATE_ROOT="$CASE_ROOT/synthetic-state"
     unset SHIM_PSQL_FAIL_PATTERN SHIM_SCP_FAIL_PATTERN SYNC_ROOT EXPORT_DATA \
@@ -64,6 +65,8 @@ SH
     cat > "$HOME/ggmap" <<'SH'
 [[ $GGMAP_RC == 0 ]] || return "$GGMAP_RC"
 ggdir() {
+    printf '%s\n' "$1" >> "$CASE_ROOT/logs/resolutions"
+    [[ $1 != bin || $BIN_RESOLVE_RC == 0 ]] || return "$BIN_RESOLVE_RC"
     case "$1" in
         bin|sync|sup) printf '%s/%s\n' "$CASE_ROOT" "$1" ;;
         *) return 97 ;;
@@ -100,8 +103,13 @@ SH
 printf 'sup\n' >> "$CALL_LOG"
 printf '%s\n' "$#" > "$CASE_ROOT/logs/sup-argc"
 [[ $# == 0 ]] || exit 98
-[[ $SUPERSET_SNAPSHOT_SETTINGS == "$CASE_ROOT/synthetic-settings.json" &&
-   $SUPERSET_SNAPSHOT_STATE_ROOT == "$CASE_ROOT/synthetic-state" ]] || exit 99
+# Simulate SUP's validation boundary, not its settings parser. These paths are
+# synthetic and no real settings/key file is ever opened.
+if [[ ${SUPERSET_SNAPSHOT_SETTINGS-} != "$CASE_ROOT/synthetic-settings.json" ]]; then
+    printf 'SUP refusal: synthetic settings input invalid\n' >&2
+    exit 3
+fi
+[[ $SUPERSET_SNAPSHOT_STATE_ROOT == "$CASE_ROOT/synthetic-state" ]] || exit 99
 if [[ $SUP_READ_INPUT == 1 ]]; then
     IFS= read -r answer || answer=EOF
     printf '%s\n' "$answer" > "$CASE_ROOT/logs/sup-input"
@@ -110,6 +118,9 @@ printf 'SUP diagnostic: synthetic %s publication\n' "$SUP_PHASE" >&2
 if [[ $SUP_PHASE == after ]]; then : > "$CASE_ROOT/published"; fi
 case "$SUP_MODE" in
     install) printf '%s\n' '{"snapshot_installed":true,"services":"stopped","rendering":"not-tested","runtime_acceptance":false}' ;;
+    warnings)
+        printf '%s\n' 'WARNING: synthetic source report order differs; values copied faithfully' >&2
+        printf '%s\n' '{"snapshot_installed":true,"warnings":["synthetic semantic difference"],"services":"stopped","rendering":"not-tested","runtime_acceptance":false}' ;;
     check) printf '%s\n' '{"preflight":"passed","snapshot_installed":false}' ;;
     rollback) printf '%s\n' '{"recovered_previous_snapshot":true,"snapshot_installed":false}' ;;
 esac
@@ -139,6 +150,7 @@ run_case() {
 }
 FULL=$'export\nimport:eyedro\nimport:pgdb\nimport:purify\nsup'
 ANALYTICAL=$'export\nimport:eyedro\nimport:pgdb\nimport:purify'
+SKIP_NOTICE='Analytical refresh complete; Superset skipped: not configured'
 for answer in $'n\n' $'\n' '' $'y\n'; do
     new_case "trim answer ${answer:-EOF}"
     run_case "$answer"
@@ -147,6 +159,61 @@ for answer in $'n\n' $'\n' '' $'y\n'; do
     check 'one ordered import of each member, then one SUP call' order "$expected"
     check 'zero SUP arguments' contains "$CASE_ROOT/logs/sup-argc" '^0$'
     check 'analytical completion on stderr' contains "$CASE_ROOT/stderr" '[Aa]nalytical.*(complet|succeed)'
+done
+
+# R.1: truly unset configuration is analytical-only success. Missing executable
+# and broken mapping cases prove the wrapper does not even resolve SUP/bin.
+for availability in present missing nonexecutable unresolvable; do
+    new_case "unset settings with $availability delegate"
+    unset SUPERSET_SNAPSHOT_SETTINGS
+    case "$availability" in
+        missing) rm "$CASE_ROOT/bin/sync-superset" ;;
+        nonexecutable) chmod -x "$CASE_ROOT/bin/sync-superset" ;;
+        unresolvable) BIN_RESOLVE_RC=88 ;;
+    esac
+    run_case $'n\n'
+    check 'analytical-only status zero' test "$RC" -eq 0
+    check 'each analytical member once and no SUP call' order "$ANALYTICAL"
+    check 'no bin/SUP resolution' absent "$CASE_ROOT/logs/resolutions" '^(bin|sup)$'
+    printf '%s\n' "$SKIP_NOTICE" > "$CASE_ROOT/expected-notice"
+    check 'exact notice on stderr only' cmp -s "$CASE_ROOT/expected-notice" "$CASE_ROOT/stderr"
+    check 'no synthetic installation stdout' test ! -s "$CASE_ROOT/stdout"
+    check 'no snapshot invocation evidence' test ! -e "$CASE_ROOT/logs/sup-argc"
+done
+
+for settings in empty missing malformed whitespace; do
+    new_case "present $settings settings"
+    case "$settings" in
+        empty) export SUPERSET_SNAPSHOT_SETTINGS='' ;;
+        missing) export SUPERSET_SNAPSHOT_SETTINGS="$CASE_ROOT/does-not-exist.json" ;;
+        malformed)
+            export SUPERSET_SNAPSHOT_SETTINGS="$CASE_ROOT/malformed.json"
+            printf '{broken synthetic json' > "$SUPERSET_SNAPSHOT_SETTINGS" ;;
+        whitespace) export SUPERSET_SNAPSHOT_SETTINGS=' ' ;;
+    esac
+    run_case $'n\n'
+    check 'invalid present setting fails validation' test "$RC" -eq 3
+    check 'present setting delegates once after imports' order "$FULL"
+    check 'validation diagnostic preserved' contains "$CASE_ROOT/stderr" '^SUP refusal: synthetic settings input invalid$'
+    check 'invalid settings never silently skipped' absent "$CASE_ROOT/stderr" '^Analytical refresh complete; Superset skipped: not configured$'
+done
+
+# An unset optional stage must never convert an earlier error to success.
+for stage in TRIM ALIAS GGMAP GG EXPORT eyedro pgdb purify; do
+    new_case "unset settings and $stage failure"
+    unset SUPERSET_SNAPSHOT_SETTINGS
+    expected_rc=21
+    input=$'n\n'
+    case "$stage" in
+        TRIM) TRIM_RC=21; input=$'y\n'; expected_rc=1 ;;
+        ALIAS|GGMAP|GG|EXPORT) export "${stage}_RC=21" ;;
+        *) FAIL_MEMBER=$stage; IMPORT_RC=21 ;;
+    esac
+    run_case "$input"
+    check 'analytical failure remains nonzero with original status' test "$RC" -eq "$expected_rc"
+    check 'no successful skip notice on failure' absent "$CASE_ROOT/stderr" '^Analytical refresh complete; Superset skipped: not configured$'
+    check 'no SUP call after analytical failure' absent "$CALL_LOG" '^sup$'
+    check 'no SUP resolution after analytical failure' absent "$CASE_ROOT/logs/resolutions" '^(bin|sup)$'
 done
 
 new_case 'trim failure'
@@ -192,12 +259,18 @@ for code in 2 3 4 5 6 7 42 130; do
     check 'partial completion reported' contains "$CASE_ROOT/stderr" '[Aa]nalytical.*(complet|succeed)'
     check 'SUP diagnostic preserved' contains "$CASE_ROOT/stderr" '^SUP diagnostic: synthetic before publication$'
 done
-for mode in install check rollback; do
+for mode in install check rollback warnings; do
     new_case "$mode JSON"
     SUP_MODE=$mode
     "$CASE_ROOT/bin/sync-superset" > "$CASE_ROOT/expected-json" 2>/dev/null
     : > "$CALL_LOG"
     run_case $'n\n'
+    check 'requested action status preserved' test "$RC" -eq 0
+    check 'configured action exactly once after analytical imports' order "$FULL"
+    check 'no skip notice for configured action' absent "$CASE_ROOT/stderr" '^Analytical refresh complete; Superset skipped: not configured$'
+    if [[ $mode == warnings ]]; then
+        check 'semantic warning survives on stderr' contains "$CASE_ROOT/stderr" '^WARNING: synthetic source report order differs; values copied faithfully$'
+    fi
     check 'JSON stdout byte preservation' cmp -s "$CASE_ROOT/expected-json" "$CASE_ROOT/stdout"
     check 'no unconditional installation/acceptance banner' absent "$CASE_ROOT/stderr" '(snapshot installed|Snapshot installed|runtime accepted|rendering passed|SYNC-ALL SUCCEEDED)'
 done

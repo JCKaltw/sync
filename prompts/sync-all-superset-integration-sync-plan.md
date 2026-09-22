@@ -2,6 +2,10 @@
 
 ## Table of Contents
 
+- [ ] [Revision R: Copy-First Full Refresh 🤖👤](#revision-r-copy-first-full-refresh-🤖👤)
+  - [x] [Step R.1: Align integration tests and instructions 🤖](#step-r1-align-integration-tests-and-instructions-🤖)
+  - [ ] [Step R.2: Rehearse the full refresh 👤🤖](#step-r2-rehearse-the-full-refresh-👤🤖)
+
 - [ ] <a id="toc-1"></a>[Overview](#overview)
 - [ ] <a id="toc-2"></a>[Problem Statement](#problem-statement)
 - [ ] <a id="toc-3"></a>[Reviewed Sources and Ownership](#reviewed-sources-and-ownership)
@@ -21,11 +25,106 @@
   - [ ] <a id="toc-17"></a>[Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖](#step-42-authorize-mac-rehearsals-and-return-to-pgui-👤🤖)
 - [ ] <a id="toc-18"></a>[Forward TODO and Planning Checkpoint](#forward-todo-and-planning-checkpoint)
 
+## Revision R: Copy-First Full Refresh 🤖👤
+
+**2026-09-21:** Baseline implementation/tests committed and merged by Chris.
+Parent `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md` Phase S now governs
+execution. SUP child Revision R copies live state faithfully and treats semantic
+report/registry/provider differences as warnings, not import blockers. Earlier
+source-repair or blanket content-hash prerequisites are superseded. No generator
+or automatic report repair is part of sync-all. Existing safety gates remain.
+
+[Back to TOC](#table-of-contents)
+
+### Step R.1: Align integration tests and instructions 🤖
+
+**Authorization, 2026-09-21:** Chris, relayed via pgui@claude, approves plan
+updates, integration tests and README changes for this narrow forward fix.
+Chris selects the branch. Analytical production scripts remain UNTOUCHED;
+bin alone changes sync-all. No credentials, real refresh or service changes.
+This revision supersedes older unconditional-SUP-call requirements below.
+
+- [x] Add unset-settings coverage: successful analytical imports, zero SUP calls,
+  exact stderr `Analytical refresh complete; Superset skipped: not configured`,
+  exit 0. Assert that any analytical failure still fails and does not print this
+  success notice. Missing SUP must not matter in the intentional unset case.
+- [x] Add set-empty and set-invalid coverage: the setting is present, so invoke
+  SUP normally and propagate its failure. No fallback skip. Configured successful
+  operation still calls SUP exactly once after the single analytical import.
+- [x] Update README to explain analytical-only success versus a complete Superset
+  refresh. Unset is intentional omission, not snapshot_installed=true. No automatic
+  settings creation, secret access or source repair. Coordinate test fixtures with
+  bin's final patch and record the tested file hash.
+
+- [x] On approval and a Chris-selected branch, update existing tests/README for
+  successful snapshot installation with warnings. Assert one analytical import
+  sequence and one SUP invocation when configured, preserved diagnostics and no automatic repair.
+- [x] Keep true export/transfer/import/safety failures nonzero with accurate
+  partial completion. Preserve bin-only ownership of sync-all and unchanged
+  analytical scripts; no transport rewrite, new generator or duplicate PGDB import.
+- [x] Document the simple sequence: stop Mac writers; export/transfer/import
+  PG2/RDS state and PG5 metadata via the existing pipeline; apply necessary Mac
+  settings; clean-start Mac hub and safely start required Mac apps; inspect results.
+  The automatic hub wrapper guard remains separate; manual clean stop is required.
+
+**Restore and authorization reconciliation — 2026-09-22 13:03 EDT:** Chris's
+watchdog correction identifies canonical Revision R on main (`e546ed1`). The
+missing section was branch vintage, not lost work. Before restoration, reviewed
+both staged and unstaged plan diffs: neither contained edits. Saved the original
+plan/diff in a temporary review backup, then executed the authorized
+`git checkout main -- prompts/sync-all-superset-integration-sync-plan.md`.
+No branch switch or commit; README/test SHA256 values were identical before and
+after checkout. No conflicts or in-progress evidence were discarded. Checkout
+staged the canonical amendment; these subsequent evidence updates are unstaged.
+Read the restored Step R.1 and reconciled the current work against all six items.
+
+**Completion evidence — 2026-09-22 13:03 EDT:** Updated only README.md and
+`tests/run-sync-all-superset-tests.sh`, plus this living plan and messages.
+The suite passes **262 assertions, 0 failures**: unset exact stderr notice and
+exit 0 with no bin/SUP resolution or invocation (including absent/nonexecutable
+wrapper and broken mapping); empty/missing/malformed/whitespace configured input
+failures; unset analytical failures; one configured analytical sequence and SUP
+call; warning/stdout preservation and genuine status propagation. Existing
+analytical regression suite passes **56 assertions, 0 failures** under env -i and
+fresh temporary HOME/TMPDIR. All existing fixture isolation remains in place;
+settings validation is simulated at the SUP boundary, not an actual SUP parser test.
+README distinguishes analytical-only success, installation with warnings and
+runtime acceptance, and documents the separately approved manual-stop → existing
+pipeline → Mac adjustments → approved clean starts → inspection sequence.
+
+Bin's completed test/hash handoff is
+`$(ggdir sync)/messages/2026-09-22-bin-r1-tested-hash.md` (12 bin tests reported).
+The wrapper copied for sync's passing run exactly matches bin's completed hash;
+rechecked after delivery, with no intervening executable change:
+- sync-all: `86c9fbc8eea29ea6b63ab979bf4f3c41e0639c92db3122b49fe04a14cf464348`
+- unchanged sync-superset: `ddf27299feb58931bb60458788e11cafc593021eb7076ea4cbce20b63879fd49`
+
+Shell syntax, whitespace and internal-anchor checks pass. Analytical scripts and
+shims are unchanged against HEAD. Mac dev PGDB/preset stores, hubs, legacy live
+apps and PG5 services were not accessed or changed. No credentials, real
+operations, source repair, commits, pushes, merges or deployment. Step R.1 coding
+and isolated integration verification complete; Revision R and Step R.2 remain
+open for separate operational preparation/approval. PGUI/pgui@claude review and
+manual Typora Cmd-click remain distinct. Evidence returned through dated messages.
+
+[Back to TOC](#table-of-contents)
+
+### Step R.2: Rehearse the full refresh 👤🤖
+
+- [ ] After SUP/bin revised tests and actual-input preparation, obtain the bounded
+  real refresh authorization in parent Phase S. Execute sync-all once on Mac.
+- [ ] Record faithful imports and warnings separately. Inspect issues afterward;
+  don't require a perfect live registry or repeat successful imports for warnings.
+- [ ] Follow SUP's generated runtime configuration for approved Mac starts,
+  keep copied jobs disabled, and return evidence to PGUI. No implicit live changes.
+
+[Back to TOC](#table-of-contents)
+
 ## Overview
 
 **Created / reviewed**: 2026-09-21 16:45 EDT
 **Author**: sync@codex
-**Status**: Sync implementation complete; 158 isolated integration assertions and 56 analytical regression assertions pass. Bin patch reviewed. Sync commit authorized 2026-09-21 17:14 EDT; Chris owns merge/push. Separate SUP acknowledgement, Typora check and operational acceptance remain open.
+**Status**: 2026-09-22 R.1 coding complete; 262 integration + 56 analytical assertions pass against bin’s completed hash. R.2 operational rehearsal, owner review and manual Typora check remain open. No R.1 commit authorized.
 **Request**: `$(ggdir sync)/prompts/sync-all-superset-integration-sync-plan-request.md`
 **Parent**: `$(ggdir pgui)/prompts/superset-sync-push-pop-plan.md`
 **Master**: `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md`
@@ -230,6 +329,11 @@ Record installation separately from later approved service start/rendering/RLS a
 [Back to TOC](#toc-17)
 
 ## Forward TODO and Planning Checkpoint
+
+- [x] R.1 🤖 Restore canonical amendment from main e546ed1, reconcile and complete tests/README with bin hash evidence (2026-09-22 13:03 EDT).
+- [ ] R.2 👤🤖 Parent Phase S review, actual-input preparation and separate real-refresh authorization; no operation or commit authorized by this coding return.
+
+Earlier dated TODOs/checkpoints below are historical where superseded by Revision R.
 
 - [x] 1. 🤖 Read the assignment, delivered SUP contract/correction and bin wrapper plan; prepare the sync plan and PGUI reply.
 - [ ] 2. 👤🤖 SUP acknowledgement remains unrecorded; Chris/PGUI approval and bin ownership/hub acknowledgement are complete (2026-09-21 17:00 EDT).
