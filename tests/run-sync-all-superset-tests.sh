@@ -133,8 +133,11 @@ printf 'sup\n' >> "$CALL_LOG"
 printf '%s\n' "$#" > "$CASE_ROOT/logs/sup-argc"
 [[ $# == 0 ]] || exit 98
 # Simulate SUP's validation boundary, not its settings parser. These paths are
-# synthetic and no real settings/key file is ever opened.
-if [[ ${SUPERSET_SNAPSHOT_SETTINGS-} != "$CASE_ROOT/synthetic-settings.json" ]]; then
+# synthetic and no real settings/key file is ever opened. The synthetic HOME
+# default path is accepted so the fallback case can prove delegation.
+printf '%s\n' "${SUPERSET_SNAPSHOT_SETTINGS-}" > "$CASE_ROOT/logs/sup-settings"
+if [[ ${SUPERSET_SNAPSHOT_SETTINGS-} != "$CASE_ROOT/synthetic-settings.json" \
+   && ${SUPERSET_SNAPSHOT_SETTINGS-} != "$HOME/.config/superset-snapshot/settings.json" ]]; then
     printf 'SUP refusal: synthetic settings input invalid\n' >&2
     exit 3
 fi
@@ -221,6 +224,21 @@ for availability in present missing nonexecutable unresolvable; do
     check 'no synthetic installation stdout' test ! -s "$CASE_ROOT/stdout"
     check 'no snapshot invocation evidence' test ! -e "$CASE_ROOT/logs/sup-argc"
 done
+
+# R.1b: unset env var with the standard default settings file present must
+# delegate with the default path exported — the env var is an override, not a
+# requirement. The file is removed afterwards so later unset cases still skip.
+DEFAULT_SETTINGS="$HOME/.config/superset-snapshot/settings.json"
+new_case 'unset settings with default file present'
+unset SUPERSET_SNAPSHOT_SETTINGS
+mkdir -p "${DEFAULT_SETTINGS%/*}"
+printf '{}\n' > "$DEFAULT_SETTINGS"
+run_case $'n\n'
+check 'default-file run succeeds' test "$RC" -eq 0
+check 'delegates exactly once after imports' order "$FULL"
+check 'no skip notice with default file' absent "$CASE_ROOT/stderr" "^$SKIP_NOTICE\$"
+check 'default path exported to SUP' contains "$CASE_ROOT/logs/sup-settings" "^$DEFAULT_SETTINGS\$"
+rm -f "$DEFAULT_SETTINGS"
 
 for settings in empty missing malformed whitespace; do
     new_case "present $settings settings"
