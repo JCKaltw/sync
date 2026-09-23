@@ -51,6 +51,10 @@ new_case() {
     export PATH="$CASE_ROOT/tools:$CASE_ROOT/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     export TRIM_RC=0 EXPORT_RC=0 IMPORT_RC=0 SUP_RC=0 ALIAS_RC=0 GGMAP_RC=0 GG_RC=0
     export FAIL_MEMBER= SUP_READ_INPUT=0 SUP_MODE=install SUP_PHASE=before BIN_RESOLVE_RC=0
+    export FAKE_MAC_DATE=20260921 FAKE_REMOTE_DATE=20260922 FAKE_AFTER_EXPORT_DATE=20260921
+    export DATE_EXPORT_ACTUAL=0 DROP_FRESH=0 FAKE_DATE_RC=0
+    unset DATE_VAR
+    cp "$REPO/sync-lib.sh" "$CASE_ROOT/sync/sync-lib.sh"
     export SUPERSET_SNAPSHOT_SETTINGS="$CASE_ROOT/synthetic-settings.json"
     export SUPERSET_SNAPSHOT_STATE_ROOT="$CASE_ROOT/synthetic-state"
     unset SHIM_PSQL_FAIL_PATTERN SHIM_SCP_FAIL_PATTERN SYNC_ROOT EXPORT_DATA \
@@ -58,8 +62,29 @@ new_case() {
     cat > "$HOME/dot-source-aliases.sh" <<'SH'
 [[ $ALIAS_RC == 0 ]] || return "$ALIAS_RC"
 pgs() {
-    [[ $# == 1 && $1 == 'source ~/ggmap && gg sync && ./export-all.sh' ]] || return 96
-    /bin/bash "$CASE_ROOT/sync/export-all.sh"
+    # Only the agreed digits-only explicit assignment crosses this fake SSH
+    # boundary. Never inherit DATE_VAR as though SendEnv were configured.
+    local grammar="^source ~/ggmap && gg sync && DATE_VAR='([0-9]{8})' ./export-all[.]sh$"
+    [[ $# == 1 && $1 =~ $grammar ]] || return 96
+    local selected=${BASH_REMATCH[1]} rc=0
+    printf '%s\n' "$selected" > "$CASE_ROOT/logs/remote-date"
+    if [[ $DATE_EXPORT_ACTUAL == 1 ]]; then
+        printf 'export\n' >> "$CALL_LOG"
+        env -u DATE_VAR DATE_VAR="$selected" FAKE_MAC_DATE="$FAKE_REMOTE_DATE" \
+            EXPORT_DATA="$SYNC_REMOTE_EXPORT_DATA" \
+            SYNC_MANIFEST="$SYNC_REMOTE_EXPORT_DATA/.sync-manifest" \
+            SYNC_PGUI_DIR="$CASE_ROOT/source-pgui" \
+            /bin/bash "$CASE_ROOT/sync/export-all.sh" || rc=$?
+        if [[ $DROP_FRESH == 1 ]]; then
+            rm "$SYNC_REMOTE_EXPORT_DATA/pg2-pgdb-$selected.tgz"
+        fi
+    else
+        env -u DATE_VAR DATE_VAR="$selected" FAKE_MAC_DATE="$FAKE_REMOTE_DATE" \
+            /bin/bash "$CASE_ROOT/sync/export-all.sh" || rc=$?
+    fi
+    # Subsequent local date calls see the new day, but the pinned value must win.
+    printf '%s\n' "$FAKE_AFTER_EXPORT_DATE" > "$CASE_ROOT/clock-after-export"
+    return "$rc"
 }
 SH
     cat > "$HOME/ggmap" <<'SH'
@@ -84,11 +109,15 @@ exit "$TRIM_RC"
 SH
     cat > "$CASE_ROOT/sync/export-all.sh" <<'SH'
 #!/bin/bash
+source "$CASE_ROOT/sync/sync-lib.sh" || exit $?
 printf 'export\n' >> "$CALL_LOG"
+printf '%s\n' "$DATE_VAR" > "$CASE_ROOT/logs/export-date"
 exit "$EXPORT_RC"
 SH
     cat > "$CASE_ROOT/sync/import-all.sh" <<'SH'
 #!/bin/bash
+source "$CASE_ROOT/sync/sync-lib.sh" || exit $?
+printf '%s\n' "$DATE_VAR" > "$CASE_ROOT/logs/import-date"
 for member in eyedro pgdb purify; do
     printf 'import:%s\n' "$member" >> "$CALL_LOG"
     if [[ $FAIL_MEMBER == "$member" ]]; then
@@ -126,6 +155,18 @@ case "$SUP_MODE" in
 esac
 exit "$SUP_RC"
 SH
+    cat > "$CASE_ROOT/tools/date" <<'SHIM'
+#!/bin/bash
+[[ $# == 1 && $1 == +%Y%m%d ]] || exit 94
+[[ $FAKE_DATE_RC == 0 ]] || exit "$FAKE_DATE_RC"
+printf 'date\n' >> "$CASE_ROOT/logs/date-calls"
+if [[ -f "$CASE_ROOT/clock-after-export" ]]; then
+    cat "$CASE_ROOT/clock-after-export"
+else
+    printf '%s\n' "$FAKE_MAC_DATE"
+fi
+SHIM
+    chmod +x "$CASE_ROOT/tools/date"
     cat > "$CASE_ROOT/tools/tripwire" <<'SH'
 #!/bin/bash
 printf '%s\n' "${0##*/}" >> "$CASE_ROOT/logs/tripwire"
@@ -214,6 +255,46 @@ for stage in TRIM ALIAS GGMAP GG EXPORT eyedro pgdb purify; do
     check 'no successful skip notice on failure' absent "$CASE_ROOT/stderr" '^Analytical refresh complete; Superset skipped: not configured$'
     check 'no SUP call after analytical failure' absent "$CALL_LOG" '^sup$'
     check 'no SUP resolution after analytical failure' absent "$CASE_ROOT/logs/resolutions" '^(bin|sup)$'
+done
+
+# Full-run date selection happens before trim/transport, once per invocation.
+for prerequisite in missing-library legacy-library clock-failure; do
+    new_case "$prerequisite before trim"
+    expected_rc=3
+    case "$prerequisite" in
+        missing-library) rm "$CASE_ROOT/sync/sync-lib.sh" ;;
+        legacy-library) printf 'DATE_VAR=20260922; export DATE_VAR\n' > "$CASE_ROOT/sync/sync-lib.sh" ;;
+        clock-failure) FAKE_DATE_RC=37; expected_rc=37 ;;
+    esac
+    run_case $'y\n'
+    check 'date prerequisite status preserved' test "$RC" -eq "$expected_rc"
+    check 'date prerequisite fails before any stage' test ! -s "$CALL_LOG"
+    check 'date prerequisite never reaches remote' test ! -e "$CASE_ROOT/logs/remote-date"
+done
+for selected in default 20240229; do
+    new_case "date pinning $selected"
+    FAKE_MAC_DATE=20260922 FAKE_REMOTE_DATE=20260923 FAKE_AFTER_EXPORT_DATE=20260924
+    if [[ $selected == default ]]; then expected_date=20260922;
+    else export DATE_VAR=$selected; expected_date=$selected; fi
+    run_case $'n\n'
+    check 'pinned full run succeeds' test "$RC" -eq 0
+    check 'remote assignment is selected date' contains "$CASE_ROOT/logs/remote-date" "^$expected_date$"
+    check 'export uses selected date' contains "$CASE_ROOT/logs/export-date" "^$expected_date$"
+    check 'import retains date after midnight' contains "$CASE_ROOT/logs/import-date" "^$expected_date$"
+    check 'SUP still exactly once' order "$FULL"
+    if [[ $selected == default ]]; then
+        check 'default clock read exactly once' test "$(wc -l < "$CASE_ROOT/logs/date-calls" | tr -d ' ')" = 1
+    else
+        check 'override never reads clock' test ! -e "$CASE_ROOT/logs/date-calls"
+    fi
+done
+for invalid in '' 20260229 20260431 '20260923;false' '$(false)' $'20260923\n'; do
+    new_case 'invalid full-run date'
+    export DATE_VAR=$invalid
+    run_case $'y\n'
+    check 'bad override exits 2 before trim/transport' test "$RC" -eq 2
+    check 'bad override triggers no stage' test ! -s "$CALL_LOG"
+    check 'bad override never reaches remote' test ! -e "$CASE_ROOT/logs/remote-date"
 done
 
 new_case 'trim failure'
@@ -336,6 +417,39 @@ check 'actual member public replays each once in order' test "$replays" = $'eyed
 check 'fixture PGDB JSON replaced' contains "$SYNC_PGUI_DIR/data/dml-ast.json" '^synthetic dml 1$'
 check 'prior JSON preserved' contains "$SYNC_PGUI_DIR/data.prev/dml-ast.json" '^before$'
 check 'analytical manifest completed' contains "$CASE_ROOT/stdout" 'IMPORT-ALL SUCCEEDED'
+
+for missing in 0 1; do
+    new_case "actual export/import selected date with missing=$missing"
+    real_import_fixture
+    # Fixture already has a full old set (20260921). New export selection differs
+    # from both simulated clocks, so falling back to either date is detectable.
+    export DATE_VAR=20260923
+    FAKE_MAC_DATE=20260922 FAKE_REMOTE_DATE=20260924 FAKE_AFTER_EXPORT_DATE=20260925
+    DATE_EXPORT_ACTUAL=1 DROP_FRESH=$missing
+    mkdir -p "$CASE_ROOT/source-pgui/data"
+    cp "$CASE_ROOT/make/data/dml-ast.json" "$CASE_ROOT/source-pgui/data/dml-ast.json"
+    cp "$CASE_ROOT/make/data/ddl-ast.json" "$CASE_ROOT/source-pgui/data/ddl-ast.json"
+    for script in export-all.sh export-eyedro.sh export-pgdb.sh export-purify.sh; do
+        cp "$REPO/$script" "$CASE_ROOT/sync/$script"
+    done
+    cp "$REPO/tests/shims/pg_dump" "$CASE_ROOT/tools/pg_dump"
+    run_case $'n\n'
+    check 'old complete set remains present' test -s "$SYNC_REMOTE_EXPORT_DATA/pg2-pgdb-20260921.tgz"
+    check 'fresh export child archive exists' test -s "$SYNC_REMOTE_EXPORT_DATA/pg2-eyedro-pgdump-20260923.tgz"
+    check 'no remote-clock archive chosen' test ! -e "$SYNC_REMOTE_EXPORT_DATA/pg2-eyedro-pgdump-20260924.tgz"
+    check 'remote export passed explicit override' contains "$CASE_ROOT/logs/remote-date" '^20260923$'
+    if [[ $missing == 0 ]]; then
+        check 'actual round trip succeeds' test "$RC" -eq 0
+        check 'fresh date in Mac import manifest' contains "$SYNC_MANIFEST" 'pg2-pgdb-20260923.tgz[|]OK'
+        check 'no older date downloads' absent "$SHIM_LOG_DIR/scp.log" '20260921'
+        check 'single export followed by single SUP call' order $'export\nsup'
+    else
+        check 'old complete set cannot satisfy missing fresh artifact' test "$RC" -eq 1
+        check 'no download on mismatched generation' test ! -e "$SHIM_LOG_DIR/scp.log"
+        check 'no replay or SUP on missing fresh date' order export
+        check 'no database replay' test ! -e "$SHIM_LOG_DIR/psql.log"
+    fi
+done
 
 new_case 'actual import-all missing remote artifact'
 real_import_fixture

@@ -227,6 +227,38 @@ assert "tarball still present" test -e "$EXPORT_DATA/pg2-purifi-pgdump-20250101.
 assert "stray sql still present" test -e "$EXPORT_DATA/public_schema_backup.sql"
 
 # ---------------------------------------------------------------------------
+echo "== T12: archive dates validate before standalone transport or mutation =="
+new_sandbox
+for invalid in '' 2026-09-23 2026092 202609230 20261301 20260001 20260431 20260229 19000229 00000101 '20260923;false' '$(false)' $'20260923\n'; do
+    out="$(DATE_VAR="$invalid" bash -c 'source "$1"' -- "$REPO/sync-lib.sh" 2>&1)"; rc=$?
+    assert "invalid date rejected with usage status" test "$rc" -eq 2
+    assert_contains "invalid date has clear diagnostic" "$out" 'Invalid DATE_VAR'
+done
+for valid in 20260923 20240229 20000229 00010101 99991231 20260809; do
+    out="$(DATE_VAR="$valid" bash -c 'source "$1" || exit $?; printf "%s" "$DATE_VAR"' -- "$REPO/sync-lib.sh" 2>&1)"; rc=$?
+    assert "valid calendar date preserved: $valid" test "$rc" -eq 0
+    assert "date unchanged: $valid" test "$out" = "$valid"
+done
+for script in export-all.sh import-all.sh export-eyedro.sh import-eyedro.sh export-pgdb.sh import-pgdb.sh export-purify.sh import-purify.sh; do
+    out="$(DATE_VAR=20260230 "$REPO/$script" 2>&1)"; rc=$?
+    assert "invalid date stops $script before work" test "$rc" -eq 2
+done
+assert "invalid standalone dates make no transport/database calls" test -z "$(find "$SHIM_LOG_DIR" -type f -print)"
+assert "invalid standalone dates write no artifacts" test -z "$(find "$EXPORT_DATA" -type f -print)"
+
+# Defaulting occurs once; a child with a different clock inherits the selection.
+cat > "$SB/date-child.sh" <<'CHILD'
+date() { printf '20260923\n'; }
+source "$1" || exit $?
+printf '%s' "$DATE_VAR"
+CHILD
+out="$(env -u DATE_VAR bash -c 'date() { printf "20260922\n"; }; source "$1" || exit $?; bash "$2" "$1"' -- "$REPO/sync-lib.sh" "$SB/date-child.sh" 2>&1)"; rc=$?
+assert "unset standalone date defaults and exports" test "$rc" -eq 0
+assert "child retains parent date across midnight" test "$out" = 20260922
+out="$(env -u DATE_VAR bash -c 'date() { return 37; }; source "$1"' -- "$REPO/sync-lib.sh" 2>&1)"; rc=$?
+assert "default clock failure is propagated" test "$rc" -eq 37
+
+# ---------------------------------------------------------------------------
 echo
 echo "======================================"
 echo "  $PASS passed, $FAIL failed"

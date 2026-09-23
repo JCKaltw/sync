@@ -15,13 +15,44 @@
 #   SYNC_PGUI_DIR          pgui checkout override (default: ggdir pgui)
 #   SYNC_FDW_BOOTSTRAP     eyedro FDW bootstrap SQL override
 #                          (default: $(ggdir db)/sql/mac-fdw-bootstrap.sql)
-#   DATE_VAR               artifact date stamp (default: today, %Y%m%d)
+#   DATE_VAR               validated YYYYMMDD (default only when unset)
 
 SYNC_ROOT="${SYNC_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 EXPORT_DATA="${EXPORT_DATA:-$SYNC_ROOT/export_data}"
 REMOTE_EXPORT_DATA="${SYNC_REMOTE_EXPORT_DATA:-sync/export_data}"
 SYNC_MANIFEST="${SYNC_MANIFEST:-$EXPORT_DATA/.sync-manifest}"
-DATE_VAR="${DATE_VAR:-$(date +%Y%m%d)}"
+# Validate before any caller constructs paths or remote commands. Bash arithmetic
+# keeps this portable across macOS/BSD and Linux without date-parser differences.
+sync_validate_date() {
+    local value="$1" year month day days
+    [[ "$value" =~ ^[0-9]{8}$ ]] || return 2
+    year=$((10#${value:0:4}))
+    month=$((10#${value:4:2}))
+    day=$((10#${value:6:2}))
+    (( year >= 1 && month >= 1 && month <= 12 && day >= 1 )) || return 2
+    case "$month" in
+        4|6|9|11) days=30 ;;
+        2)
+            days=28
+            if (( year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) )); then
+                days=29
+            fi
+            ;;
+        *) days=31 ;;
+    esac
+    (( day <= days )) || return 2
+}
+
+# A full-run caller selects here once, passes the date explicitly to PG2 and
+# inherits this exported value for the Mac import. Standalone callers still
+# default to their own host's date, but never replace an explicit invalid value.
+if [[ ! ${DATE_VAR+x} ]]; then
+    DATE_VAR=$(date +%Y%m%d) || return $?
+fi
+if ! sync_validate_date "$DATE_VAR"; then
+    printf '%s\n' 'Invalid DATE_VAR: expected a real Gregorian date in YYYYMMDD format.' >&2
+    return 2
+fi
 export SYNC_ROOT EXPORT_DATA SYNC_MANIFEST DATE_VAR
 
 is_mac() { [ "$(uname)" = "Darwin" ]; }
