@@ -177,6 +177,30 @@ Today's already-imported Mac dev PGDB and preset reports are not test fixtures.
 
 ## Analytical artifacts and connection facts
 
+The full-run date-consistency change selects `DATE_VAR` once on the Mac before
+trim or transport, validates it through sync-lib.sh, explicitly passes those same
+digits to PG2 export, and exports the value for Mac import and every child script.
+Bin owns the sync-all wrapper portion; use the tested/reviewed wrapper identified
+in [the date-consistency plan](prompts/sync-all-export-import-date-mismatch-sync-plan.md).
+Different host timezones and midnight during export must not change that selection.
+This does not distinguish concurrent exports made on the same date.
+
+A supplied `DATE_VAR` must be a real Gregorian date formatted as exactly eight
+`YYYYMMDD` digits. Present-empty, malformed and impossible dates fail with status 2
+before archive access or transport; no fallback to another day is allowed.
+Standalone export/import scripts retain their own host-date default only when
+DATE_VAR is unset. An explicit valid override is preserved and exported to children.
+Clock-command failures propagate. No timezone settings or SSH environment-forwarding
+configuration are required. The wrapper must pass the date explicitly to PG2;
+exporting a Mac variable alone is insufficient.
+
+For separately approved recovery, select the verified existing export date rather
+than assuming today's date or rerunning a full export. An older complete set must
+not satisfy preflight for a missing archive from the selected date. The known
+interrupted 20260922 eyedro download may be partial; do not trust or clean it without
+approval. Recovery requires fresh source-set and target-state checks, then Chris's
+approval; coding and mocked tests do not authorize that operation.
+
 Artifacts use the shared date stamp and live under each host's sync export_data/:
 
 | Member | Archives |
