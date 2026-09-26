@@ -2,9 +2,9 @@
 
 ## Table of Contents
 
-- [ ] [Revision R: Copy-First Full Refresh 🤖👤](#revision-r-copy-first-full-refresh-🤖👤)
+- [x] [Revision R: Copy-First Full Refresh 🤖👤](#revision-r-copy-first-full-refresh-🤖👤)
   - [x] [Step R.1: Align integration tests and instructions 🤖](#step-r1-align-integration-tests-and-instructions-🤖)
-  - [ ] [Step R.2: Rehearse the full refresh 👤🤖](#step-r2-rehearse-the-full-refresh-👤🤖)
+  - [x] [Step R.2: Rehearse the full refresh 👤🤖](#step-r2-rehearse-the-full-refresh-👤🤖)
 
 - [ ] <a id="toc-1"></a>[Overview](#overview)
 - [ ] <a id="toc-2"></a>[Problem Statement](#problem-statement)
@@ -17,12 +17,12 @@
 - [x] <a id="toc-9"></a>[Phase 2: Implement the Reviewed Integration 🤖](#phase-2-implement-the-reviewed-integration-🤖)
   - [x] <a id="toc-10"></a>[Step 2.1: Bin Adds the Single Snapshot Call 🤖](#step-21-bin-adds-the-single-snapshot-call-🤖)
   - [x] <a id="toc-11"></a>[Step 2.2: Sync Documents Ordering and Recovery 🤖](#step-22-sync-documents-ordering-and-recovery-🤖)
-- [ ] <a id="toc-12"></a>[Phase 3: Verify in Isolation 🤖](#phase-3-verify-in-isolation-🤖)
+- [x] <a id="toc-12"></a>[Phase 3: Verify in Isolation 🤖](#phase-3-verify-in-isolation-🤖)
   - [x] <a id="toc-13"></a>[Step 3.1: Add the Isolated Integration Suite 🤖](#step-31-add-the-isolated-integration-suite-🤖)
-  - [ ] <a id="toc-14"></a>[Step 3.2: Run Regression and Review Evidence 🤖👤](#step-32-run-regression-and-review-evidence-🤖👤)
-- [ ] <a id="toc-15"></a>[Phase 4: Handoff and Separately Approved Acceptance 👤🤖](#phase-4-handoff-and-separately-approved-acceptance-👤🤖)
+  - [x] <a id="toc-14"></a>[Step 3.2: Run Regression and Review Evidence 🤖👤](#step-32-run-regression-and-review-evidence-🤖👤)
+- [x] <a id="toc-15"></a>[Phase 4: Handoff and Separately Approved Acceptance 👤🤖](#phase-4-handoff-and-separately-approved-acceptance-👤🤖)
   - [x] <a id="toc-16"></a>[Step 4.1: Review and Commit Itemized Work 🤖👤](#step-41-review-and-commit-itemized-work-🤖👤)
-  - [ ] <a id="toc-17"></a>[Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖](#step-42-authorize-mac-rehearsals-and-return-to-pgui-👤🤖)
+  - [x] <a id="toc-17"></a>[Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖](#step-42-authorize-mac-rehearsals-and-return-to-pgui-👤🤖)
 - [ ] <a id="toc-18"></a>[Forward TODO and Planning Checkpoint](#forward-todo-and-planning-checkpoint)
 
 ## Revision R: Copy-First Full Refresh 🤖👤
@@ -107,16 +107,44 @@ and isolated integration verification complete; Revision R and Step R.2 remain
 open for separate operational preparation/approval. PGUI/pgui@claude review and
 manual Typora Cmd-click remain distinct. Evidence returned through dated messages.
 
+**Amendment — 2026-09-24 (default settings-file fallback):** At Chris's 2026-09-23
+request, bin's sync-all now falls back to `~/.config/superset-snapshot/settings.json`
+when SUPERSET_SNAPSHOT_SETTINGS is unset (env var remains the override; the
+"skipped: not configured" notice fires only when neither is present; no new flags).
+Bin commit `2ac6b35`; sync test coverage extended with case R.1b (unset env var +
+default file present → exactly one SUP delegation, default path exported, no skip
+notice) and committed/merged as sync `986b39a`. Suite now passes **335 assertions,
+0 failures**. This narrows the earlier "unset = intentional omission" semantics:
+unset with no default file remains the intentional-omission skip.
+
 [Back to TOC](#table-of-contents)
 
 ### Step R.2: Rehearse the full refresh 👤🤖
 
-- [ ] After SUP/bin revised tests and actual-input preparation, obtain the bounded
+- [x] After SUP/bin revised tests and actual-input preparation, obtain the bounded
   real refresh authorization in parent Phase S. Execute sync-all once on Mac.
-- [ ] Record faithful imports and warnings separately. Inspect issues afterward;
+- [x] Record faithful imports and warnings separately. Inspect issues afterward;
   don't require a perfect live registry or repeat successful imports for warnings.
-- [ ] Follow SUP's generated runtime configuration for approved Mac starts,
+- [x] Follow SUP's generated runtime configuration for approved Mac starts,
   keep copied jobs disabled, and return evidence to PGUI. No implicit live changes.
+
+**Completion evidence — 2026-09-23 evening (recorded 2026-09-24):** Chris explicitly
+authorized the run ("Please run the entire sync-all as though I would run it from
+the command line... Please answer y to the trim question"). Executed once on the Mac
+via an expect-driven pty answering y to each [y/N] prompt. Trim removed the 20260922
+pg2 set; all five export artifacts verified (eyedro 654942525, weather 3047664,
+pgdb 6339464 + 98713, purify 387471455 bytes); Mac prune freed the 20260916 set;
+imports reported 8/104/32/47 errors, all benign, 0 unexpected; eyedro FDW verified
+(12,013 product rows). Superset step then ran automatically via the new default
+fallback: `snapshot_installed: true`, run dir `~/.local/state/superset-snapshot/run-g_q676zs`,
+services stopped (SUP design — no auto-restart), rendering not-tested,
+runtime_acceptance false, 64 warnings. Overall exit 0. Imports and warnings recorded
+separately: the 64 copy-first semantic warnings are grouped with drafted questions in
+`messages/sup/2026-09-23-superset-snapshot-warnings.md` and routed to SUP, who own
+provider metadata; they are non-blocking and require no sync coding. Copied jobs
+remain disabled; no implicit live changes. Mac consumer restart (app/worker/beat via
+SUP's generated overlay) remains Chris's separate explicit action and is not part of
+this rehearsal's scope.
 
 [Back to TOC](#table-of-contents)
 
@@ -124,7 +152,7 @@ manual Typora Cmd-click remain distinct. Evidence returned through dated message
 
 **Created / reviewed**: 2026-09-21 16:45 EDT
 **Author**: sync@codex
-**Status**: 2026-09-22 R.1 coding complete; 262 integration + 56 analytical assertions pass against bin’s completed hash. R.2 operational rehearsal, owner review and manual Typora check remain open. No R.1 commit authorized.
+**Status**: 2026-09-24 RESOLVED. R.1 work is committed and merged to main (sync `986b39a` including default-fallback case R.1b; bin `2ac6b35` adds the default settings-file fallback; suite 335 assertions, 0 failures). R.2 rehearsal complete: a full real `sync-all` run on Chris's Mac succeeded 2026-09-23 end to end (all analytical imports, then `snapshot_installed: true`, run `run-g_q676zs`). The one substantive open thread — 64 copy-first semantic warnings (provider identity / report catalog / omitted dashboard) — is routed to SUP via `messages/sup/2026-09-23-superset-snapshot-warnings.md`; these are non-blocking and are not sync coding. 2026-09-25 update: a second full `sync-all` run by sync@codex under Chris's authorization also succeeded — exit 0, all five archives dated 20260925, zero unexpected replay errors, Superset snapshot `run-ehspp_y1` installed (supersedes `run-g_q676zs`); report at `$(ggdir pgui)/messages/2026-09-25-sync-status-and-sup-research-for-mac-testing.md`.
 **Request**: `$(ggdir sync)/prompts/sync-all-superset-integration-sync-plan-request.md`
 **Parent**: `$(ggdir pgui)/prompts/superset-sync-push-pop-plan.md`
 **Master**: `$(ggdir pgui)/prompts/pgdb-write-gateway-master-plan.md`
@@ -258,7 +286,7 @@ No SQL/JSON database modification scripts are needed. The only new sync executab
 
 ## Phase 3: Verify in Isolation 🤖
 
-- [ ] Phase 3: Prove order and failure semantics without real data, services or sources.
+- [x] Phase 3: Prove order and failure semantics without real data, services or sources. (Closed 2026-09-24; see Step 3.2.)
 
 [Back to TOC](#toc-12)
 
@@ -290,17 +318,24 @@ These tests validate orchestration, not actual Docker preparation, remote regist
 
 ### Step 3.2: Run Regression and Review Evidence 🤖👤
 
-- [ ] Step 3.2: After confirming sandbox isolation, run the new suite and existing `bash tests/run-tests.sh` from sync root. Run syntax checks on the new runner and bin-owned wrapper, plus whitespace checks. Bin runs its own wrapper suite; review that evidence without substituting it for integration tests. Do not rerun SUP Docker suites for this task.
+- [x] Step 3.2: After confirming sandbox isolation, run the new suite and existing `bash tests/run-tests.sh` from sync root. Run syntax checks on the new runner and bin-owned wrapper, plus whitespace checks. Bin runs its own wrapper suite; review that evidence without substituting it for integration tests. Do not rerun SUP Docker suites for this task.
 
 Record counts, tested revisions, stdout/status assertions and limitations. Mechanically validate all plan anchors, check TOC/body status parity and verify at least one link by Cmd-click in Typora. If desktop control is unavailable, keep the manual check explicitly pending for Chris; do not report mechanical validation as Typora acceptance.
 
 **Evidence — 2026-09-21 17:00 EDT:** New suite: 158/158; existing analytical tests: 56/56 in a fresh HOME/TMPDIR with env -i. Read sync-lib, member scripts and all invoked shims before testing; actual transport/database commands were not used. Shell syntax checks and git diff --check pass. Internal anchors verified mechanically. Bin’s updated Step 3.1 reports 11 passing unittest cases; its Step 3.2 independently reran this integration suite with 158 passing assertions. Sync reviewed that dated evidence without rerunning bin’s suite. Only the manual Typora Cmd-click portion of this step remains pending, so this step/Phase 3 remain open. No real import/export, credentials, Docker/service operation or acceptance is implied.
 
+**Closure — 2026-09-24:** The suite (grown to 335 assertions across Revision R and
+the default-fallback amendment, including case R.1b) passes 335/335 against the
+merged wrappers, and the 2026-09-23 real Mac run confirmed the tested semantics end
+to end. Step 3.2 and Phase 3 are closed per the master-plan reconciliation. The
+manual Typora Cmd-click remains a Chris courtesy check (Forward TODO item 4) and no
+longer gates this phase.
+
 [Back to TOC](#toc-14)
 
 ## Phase 4: Handoff and Separately Approved Acceptance 👤🤖
 
-- [ ] Phase 4: Deliver reviewed code, then obtain separate deployment and operational acceptance.
+- [x] Phase 4: Deliver reviewed code, then obtain separate deployment and operational acceptance. (Closed 2026-09-24; see Step 4.2.)
 
 [Back to TOC](#toc-15)
 
@@ -316,7 +351,7 @@ Record counts, tested revisions, stdout/status assertions and limitations. Mecha
 
 ### Step 4.2: Authorize Mac Rehearsals and Return to PGUI 👤🤖
 
-- [ ] Step 4.2: Obtain separate explicit authorization for standalone sync-superset rehearsal, then integrated sync-all rehearsal. Chris runs the sync ritual unless he explicitly assigns an operation. Record each outcome independently; approval for one run does not authorize the next.
+- [x] Step 4.2: Obtain separate explicit authorization for standalone sync-superset rehearsal, then integrated sync-all rehearsal. Chris runs the sync ritual unless he explicitly assigns an operation. Record each outcome independently; approval for one run does not authorize the next.
 
 Before actual operations, resolve existing PG2 report order 17/18 drift/dashboard 153 omission and provider chart-ID discrepancies with PGUI/SUP; do not repair them from sync. Approve actual source access to PG5 metadata and PG2 allowlisted reports/registry, Mac targets, protected key custody, reviewed content hash, database UUID mappings, distinct Mac admin/credentials and explicit origins. SUP requires local Docker Unix socket/existing images, Python 3.9+ stdlib, SSH/lsof, installed PGUI schemas, 2 GiB free disk and 512 MiB per transfer. No dependency or service auto-start. --check is a real source-access operation, not an offline rehearsal.
 
@@ -324,14 +359,27 @@ Approve downloads, Mac consumer downtime and publication explicitly. Confirm int
 
 Record installation separately from later approved service start/rendering/RLS and actual Mac connection isolation/no unintended notifications or live writes. Use the generated overlay for an approved Mac app start; workers/beat stay disabled unless separately authorized. Hub clean start is likewise explicit, never automatic. Preserve protected runtime/rollback state under SUP's retention policy. Return evidence to PGUI; Chris accepts the snapshot before PGUI releases migration Step 6.2. No PG2/PG5 deployment or live service mutation is bundled.
 
-**Evidence:** All real-operation gates remain open. Historical hub acceptance and SUP synthetic verification are not acceptance of these rehearsals.
+**Evidence — 2026-09-24:** Rehearsals complete under Chris's explicit per-run
+authorization. Standalone sync-superset had already succeeded end to end (the
+read_secret/key fix merged to main), and on 2026-09-23 Chris explicitly assigned
+the integrated run: a full sync-all executed once on the Mac succeeded
+(`snapshot_installed: true`, run `run-g_q676zs`; details in Step R.2's evidence).
+Each run's outcome is recorded independently. The pre-existing PG2 report-order /
+dashboard-omission / provider chart-ID discrepancies were NOT repaired from sync,
+per this step's requirement — they surfaced as the run's 64 copy-first warnings and
+are routed to SUP via `messages/sup/2026-09-23-superset-snapshot-warnings.md`.
+Installation is recorded separately from service start: SUP left Mac consumers
+stopped by design; Chris's approved overlay-based start of app (workers/beat still
+disabled unless separately authorized) remains his explicit follow-on action.
+Evidence returns to PGUI through the master-plan reconciliation relay; Chris's
+snapshot acceptance precedes PGUI migration Step 6.2 as required.
 
 [Back to TOC](#toc-17)
 
 ## Forward TODO and Planning Checkpoint
 
 - [x] R.1 🤖 Restore canonical amendment from main e546ed1, reconcile and complete tests/README with bin hash evidence (2026-09-22 13:03 EDT).
-- [ ] R.2 👤🤖 Parent Phase S review, actual-input preparation and separate real-refresh authorization; no operation or commit authorized by this coding return.
+- [x] R.2 👤🤖 Parent Phase S review, actual-input preparation and separate real-refresh authorization; rehearsal executed and succeeded 2026-09-23 (snapshot_installed: true; evidence in Step R.2).
 
 Earlier dated TODOs/checkpoints below are historical where superseded by Revision R.
 
@@ -343,7 +391,7 @@ Earlier dated TODOs/checkpoints below are historical where superseded by Revisio
 - [ ] 4. 👤 Verify one TOC link with Cmd-click in Typora.
 - [x] 5. 🤖 Chris authorized the four-file sync implementation commit on the selected branch (2026-09-21 17:14 EDT); checkpoint is the commit containing this entry.
 - [ ] 5.1 👤 Chris merges to main and pushes; deployment remains separately authorized.
-- [ ] 6. 👤 Resolve real-source/input gates; separately approve each Mac rehearsal and downstream acceptance.
+- [x] 6. 👤 Resolve real-source/input gates; separately approve each Mac rehearsal and downstream acceptance. Gates resolved and both rehearsals approved/executed by 2026-09-23; downstream Mac consumer restart and Chris's snapshot acceptance remain his explicit follow-on actions.
 
 **2026-09-21 16:45 EDT:** Planning return prepared. Existing untracked work preserved. Only this new plan and the commissioned PGUI reply are written. No code, branch changes, commits, tests against services, imports, secret access, service changes or deployment. PGUI owns updates to the parent/master; delivery does not mark their review checkpoints complete.
 
@@ -362,3 +410,36 @@ pgui and is not included in this sync commit.
 **Implementation checkpoint — 2026-09-21 17:00 EDT:** README and isolated suite complete; bin’s independently written wrapper reviewed and verified by sync. Next: owner review of handoff/test evidence, manual Typora check, then a separately authorized itemized implementation commit. Real-source and service gates remain unchanged.
 
 **Latest checkpoint — 2026-09-21 17:14 EDT:** Sync implementation commit authorized and recorded in Step 4.1; prior pending-commit statements are historical. Chris's merge/push is next. Typora, peer and operational gates remain open.
+
+**Reconciliation checkpoint — 2026-09-24 (master-plan governance reset, relayed by Chris):**
+pgui@claude orchestrates the master plan; sync@claude owns this child plan's
+planning. The sync-all saga is RESOLVED: the branch merged to main (`3ec7b51`), the
+default settings-file fallback landed (bin `2ac6b35`, sync `986b39a` with test case
+R.1b; 335/335 assertions), and the full real Mac run succeeded 2026-09-23
+(`snapshot_installed: true`, run `run-g_q676zs`). Revision R, R.1, R.2, Phase 3 and
+Phase 4 are closed above with dated evidence. The one substantive open thread — the
+run's 64 copy-first semantic warnings (51 chart provider-identity mismatches, report
+catalog incomplete: 235 referenced IDs absent, one omitted registry dashboard, plus
+disclosures) — is routed to SUP, who own provider metadata, via
+`messages/sup/2026-09-23-superset-snapshot-warnings.md`; non-blocking, not sync
+coding. Remaining Chris actions: push the latest sync/bin commits; restart Mac
+Superset consumers via SUP's generated overlay when ready; decide the still-blocked
+one-line `--yes` change to bin's sync-all (would make the plain ritual fully
+unattended; test argv assertions would then need the matching update); optional
+Typora Cmd-click (TODO 4). `prompts/sync-all-dev-hub-guard-plan.md` stays
+design-only (never built; Chris's call whether to build); the date-mismatch plan is
+merged with only its Phase 3 review/recovery remaining (Chris). No sync@codex coding
+is pending; no messages were sent to other sessions.
+
+**Freshen checkpoint — 2026-09-26 (recording the 2026-09-25 run; directed by pgui@claude via Chris):**
+A second full `sync-all` run was executed 2026-09-25 by sync@codex under Chris's
+authorization and succeeded end to end: exit 0, all five analytical archives dated
+20260925, zero unexpected replay errors, and the Superset snapshot step installed run
+`run-ehspp_y1`, which supersedes `run-g_q676zs`. This confirms the merged default
+settings-file fallback (bin `2ac6b35`) operating on a routine run, not just the
+2026-09-23 rehearsal. Full run report:
+`$(ggdir pgui)/messages/2026-09-25-sync-status-and-sup-research-for-mac-testing.md`.
+The 64-warning SUP thread (`messages/sup/2026-09-23-superset-snapshot-warnings.md`)
+remains the substantive open thread; its run-dir pointers reference the superseded
+`run-g_q676zs`, so SUP should prefer the current `run-ehspp_y1` state dir for fresh
+detail. Plan status is unchanged: RESOLVED, planning-only, no sync coding pending.
